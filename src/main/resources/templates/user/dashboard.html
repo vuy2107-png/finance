@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<h1>Dashboard</h1>
+
+<h3>Tổng thu: <span th:text="${income}"></span></h3>
+
+<h3>Tổng chi: <span th:text="${expense}"></span></h3>
+
+<h3>Số dư: <span th:text="${balance}"></span></h3>
+
+<h3>Số giao dịch: <span th:text="${total}"></span></h3>
+
+<a href="/user/transactions">Quay lại danh sách</a>
+
+</body>
+</html>

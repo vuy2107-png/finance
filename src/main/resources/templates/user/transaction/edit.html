@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sửa chi tiêu</title>
+</head>
+<body>
+
+<h2>Sửa chi tiêu</h2>
+
+<form th:action="@{/user/transactions/edit}" method="post" th:object="${transaction}">
+
+    <input type="hidden" th:field="*{id}"/>
+
+    <input type="text" th:field="*{amount}"/>
+    <p th:errors="*{amount}"></p>
+
+    <input type="text" th:field="*{description}"/>
+    <p th:errors="*{description}"></p>
+
+    <input type="date" th:field="*{date}"/>
+    <p th:errors="*{date}"></p>
+
+    <button type="submit">Cập nhật</button>
+
+    <select th:field="*{type}">
+        <option value="INCOME">Thu</option>
+        <option value="EXPENSE">Chi</option>
+    </select>
+</form>
+</body>
+</html>

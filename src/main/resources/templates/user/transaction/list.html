@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Transaction List</title>
+</head>
+<body>
+
+<h2>Danh sách giao dịch</h2>
+
+<a href="/user/transactions/create">Thêm mới</a>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Số tiền</th>
+        <th>Mô tả</th>
+        <th>Ngày</th>
+    </tr>
+
+    <tr th:each="t : ${transactions}">
+        <td th:text="${t.id}"></td>
+        <td th:text="${t.amount}"></td>
+        <td th:text="${t.description}"></td>
+        <td th:text="${t.date}"></td>
+
+        <td>
+            <a th:href="@{/user/transactions/edit/{id}(id=${t.id})}">Sửa</a>
+            <a th:href="@{/user/transactions/delete/{id}(id=${t.id})}">Xoá</a>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

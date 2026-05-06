@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thêm chi tiêu</title>
+</head>
+<body>
+
+<h2>Thêm chi tiêu</h2>
+
+<form th:action="@{/user/transactions/create}" method="post" th:object="${transaction}">
+
+    <input type="text" th:field="*{amount}" placeholder="Số tiền"/>
+    <p th:errors="*{amount}"></p>
+
+    <input type="text" th:field="*{description}" placeholder="Mô tả"/>
+    <p th:errors="*{description}"></p>
+
+    <input type="date" th:field="*{date}"/>
+    <p th:errors="*{date}"></p>
+
+    <!-- 🔥 CHÍNH LÀ Ở ĐÂY -->
+    <select th:field="*{type}">
+        <option value="INCOME">Thu</option>
+        <option value="EXPENSE">Chi</option>
+    </select>
+
+    <button type="submit">Lưu</button>
+</form>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
 package com.codegym.finance.entity;
 
-public enum Enum {
+public enum Role {
     USER,
     ADMIN
 }
