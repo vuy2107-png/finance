@@ -18,14 +18,14 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF để dễ dàng test bằng Postman
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/register", "/login").permitAll()// Cho phép truy cập vào /register và /login mà không cần xác thực
+                        .requestMatchers("/register", "/login", "/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()// Cho phép truy cập vào tĩnh và login/register
                         .requestMatchers("/user/**").hasRole("USER") // Chỉ cho phép người dùng có vai trò USER truy cập vào các URL bắt đầu bằng /user/
                         .requestMatchers("/admin/**").hasRole("ADMIN") // Chỉ cho phép người dùng có vai trò ADMIN truy cập vào các URL bắt đầu bằng /admin/
-                        .anyRequest().authenticated() // Yêu cầu xác thực cho tất cả các yêu cầu khác)
+                        .anyRequest().authenticated() // Yêu cầu xác thực cho tất cả các yêu cầu khác
                 )
                 .formLogin(form -> form
                         .loginPage("/login") // Chỉ định trang login tùy chỉnh
-                        .defaultSuccessUrl("/user/transactions", true) // Chuyển hướng sau khi đăng nhập thành công
+                        .defaultSuccessUrl("/user/dashboard", true) // Chuyển hướng sau khi đăng nhập thành công
                         .permitAll() // Cho phép tất cả mọi người truy cập vào
                 )
                 .logout(logout -> logout

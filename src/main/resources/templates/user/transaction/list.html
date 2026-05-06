@@ -1,34 +1,93 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Transaction List</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách Giao dịch | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<h2>Danh sách giao dịch</h2>
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/user/dashboard" class="navbar-brand">
+                <i class="fas fa-chart-pie"></i> Finance Pro
+            </a>
+            <div class="navbar-nav">
+                <a th:href="@{/user/dashboard}" class="nav-link">Tổng quan</a>
+                <a th:href="@{/user/transactions}" class="nav-link active">Giao dịch</a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Đăng xuất</button>
+                </form>
+            </div>
+        </div>
+    </nav>
 
-<a href="/user/transactions/create">Thêm mới</a>
+    <!-- Main Content -->
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Quản lý giao dịch</h1>
+            <a th:href="@{/user/transactions/create}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Thêm giao dịch mới
+            </a>
+        </div>
 
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Số tiền</th>
-        <th>Mô tả</th>
-        <th>Ngày</th>
-    </tr>
-
-    <tr th:each="t : ${transactions}">
-        <td th:text="${t.id}"></td>
-        <td th:text="${t.amount}"></td>
-        <td th:text="${t.description}"></td>
-        <td th:text="${t.date}"></td>
-
-        <td>
-            <a th:href="@{/user/transactions/edit/{id}(id=${t.id})}">Sửa</a>
-            <a th:href="@{/user/transactions/delete/{id}(id=${t.id})}">Xoá</a>
-        </td>
-    </tr>
-</table>
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Ngày</th>
+                        <th>Mô tả</th>
+                        <th>Loại</th>
+                        <th style="text-align: right;">Số tiền</th>
+                        <th style="text-align: right; width: 120px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="t, stat : ${transactions}">
+                        <td th:text="${stat.count}" style="color: var(--text-muted);"></td>
+                        <td th:text="${t.date}" style="font-weight: 500;"></td>
+                        <td th:text="${t.description}"></td>
+                        <td>
+                            <span th:if="${t.type.name() == 'INCOME'}" class="badge badge-income">Thu nhập</span>
+                            <span th:if="${t.type.name() == 'EXPENSE'}" class="badge badge-expense">Chi tiêu</span>
+                        </td>
+                        <td style="text-align: right; font-weight: 600;">
+                            <span th:class="${t.type.name() == 'INCOME' ? 'text-success' : 'text-danger'}" 
+                                  th:style="${t.type.name() == 'INCOME' ? 'color: var(--success);' : 'color: var(--danger);'}"
+                                  th:text="${t.type.name() == 'INCOME' ? '+' : '-'} + ${#numbers.formatDecimal(t.amount, 0, 'COMMA', 2, 'POINT')} + ' ₫'">
+                            </span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <a th:href="@{/user/transactions/edit/{id}(id=${t.id})}" class="btn btn-secondary" style="padding: 0.375rem 0.5rem;" title="Sửa">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a th:href="@{/user/transactions/delete/{id}(id=${t.id})}" class="btn btn-secondary" 
+                                   style="padding: 0.375rem 0.5rem; color: var(--danger);" title="Xóa"
+                                   onclick="return confirm('Bạn có chắc chắn muốn xoá giao dịch này?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(transactions)}">
+                        <td colspan="6" style="text-align: center; padding: 3rem 1rem;">
+                            <div style="color: var(--text-muted); margin-bottom: 1rem;">
+                                <i class="fas fa-inbox" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                            </div>
+                            <div style="font-weight: 500; margin-bottom: 0.25rem;">Chưa có dữ liệu</div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">Bạn chưa có giao dịch nào được ghi lại.</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 </body>
 </html>

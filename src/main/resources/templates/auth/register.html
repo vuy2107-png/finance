@@ -1,69 +1,61 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Đăng ký</title>
     <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: Arial;
-            background: #f4f4f4;
-        }
-        .container {
-            width: 400px;
-            margin: 80px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px #ccc;
-        }
-        h2 {
-            text-align: center;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #28a745;
-            color: white;
-            border: none;
-        }
-        .error {
-            color: red;
-            font-size: 13px;
-        }
-        a {
-            display: block;
-            text-align: center;
-            margin-top: 10px;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<div class="container">
-    <h2>Đăng ký</h2>
+    <div class="auth-split-layout">
+        <!-- Left Side - Visual & Value Prop -->
+        <div class="auth-split-visual" style="background-color: #064e3b; background-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.15), transparent 25%); border-right: 1px solid #065f46;">
+            <div class="brand">
+                <i class="fas fa-chart-line" style="color: #10b981;"></i> Finance Pro
+            </div>
+            
+            <div class="testimonial">
+                <p class="quote">"Kiểm soát dòng tiền chưa bao giờ dễ dàng đến thế. Quản lý chi tiêu, lập ngân sách và theo dõi mục tiêu tài chính của bạn."</p>
+                <div class="author" style="color: #a7f3d0;">
+                    <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.5rem;"></i>
+                    <span>Dữ liệu được mã hóa an toàn 256-bit</span>
+                </div>
+            </div>
+        </div>
 
-    <form th:action="@{/register}" th:object="${user}" method="post">
+        <!-- Right Side - Form -->
+        <div class="auth-split-form-container">
+            <div class="auth-form-wrapper">
+                <div class="auth-form-header">
+                    <h1>Tạo tài khoản</h1>
+                    <p>Hãy bắt đầu hành trình tự do tài chính của bạn.</p>
+                </div>
 
-        <!-- Username -->
-        <input type="text" th:field="*{username}" placeholder="Username"/>
-        <div class="error" th:if="${#fields.hasErrors('username')}"
-             th:errors="*{username}"></div>
+                <form th:action="@{/register}" th:object="${user}" method="post">
+                    <div class="form-group">
+                        <label for="username">Tên đăng nhập</label>
+                        <input type="text" th:field="*{username}" id="username" class="form-control" placeholder="Tên đăng nhập mong muốn" required>
+                        <div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.375rem;" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></div>
+                    </div>
 
-        <!-- Password -->
-        <input type="password" th:field="*{password}" placeholder="Password"/>
-        <div class="error" th:if="${#fields.hasErrors('password')}"
-             th:errors="*{password}"></div>
+                    <div class="form-group">
+                        <label for="password">Mật khẩu</label>
+                        <input type="password" th:field="*{password}" id="password" class="form-control" placeholder="Tạo mật khẩu an toàn" required>
+                        <div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.375rem;" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                    </div>
 
-        <button type="submit">Đăng ký</button>
-    </form>
+                    <button type="submit" class="btn btn-primary btn-block" style="padding: 0.75rem; font-size: 1rem; margin-top: 1.5rem;">Đăng ký tài khoản</button>
+                </form>
 
-    <a th:href="@{/login}">Đã có tài khoản? Đăng nhập</a>
-</div>
+                <div style="margin-top: 2rem; text-align: center; font-size: 0.875rem; color: var(--text-muted);">
+                    Đã có tài khoản? <a href="/login" style="font-weight: 600;">Đăng nhập</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

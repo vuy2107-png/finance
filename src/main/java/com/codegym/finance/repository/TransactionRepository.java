@@ -28,6 +28,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Double sumByUserAndType(@Param("user") User user,
                             @Param("type") TransactionType type);
 
+    // Tổng tiền theo loại và ngày cụ thể
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type AND t.date = :date")
+    Double sumByUserAndTypeAndDate(@Param("user") User user,
+                                   @Param("type") TransactionType type,
+                                   @Param("date") LocalDate date);
+
+    // Tổng tiền theo loại và khoảng thời gian (theo tháng)
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type AND t.date >= :startDate AND t.date <= :endDate")
+    Double sumByUserAndTypeAndDateBetween(@Param("user") User user,
+                                          @Param("type") TransactionType type,
+                                          @Param("startDate") LocalDate startDate,
+                                          @Param("endDate") LocalDate endDate);
+
 
     // ================= FILTER =================
 

@@ -25,6 +25,14 @@ public interface ITransactionService {
 
     double getTotalExpense(String username);
 
+    double getTodayIncome(String username);
+
+    double getTodayExpense(String username);
+
+    double getThisMonthIncome(String username);
+
+    double getThisMonthExpense(String username);
+
     double getBalance(String username);
 
     int getTotalTransactions(String username);

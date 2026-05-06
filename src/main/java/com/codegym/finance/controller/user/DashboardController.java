@@ -24,6 +24,18 @@ public class DashboardController {
          model.addAttribute("expense",
                  transactionService.getTotalExpense(username));
 
+         model.addAttribute("todayIncome",
+                 transactionService.getTodayIncome(username));
+
+         model.addAttribute("todayExpense",
+                 transactionService.getTodayExpense(username));
+
+         model.addAttribute("thisMonthIncome",
+                 transactionService.getThisMonthIncome(username));
+
+         model.addAttribute("thisMonthExpense",
+                 transactionService.getThisMonthExpense(username));
+
          model.addAttribute("balance",
                  transactionService.getBalance(username));
 

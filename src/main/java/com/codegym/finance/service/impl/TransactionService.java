@@ -61,6 +61,7 @@ public class TransactionService implements ITransactionService {
         old.setAmount(transaction.getAmount());
         old.setDescription(transaction.getDescription());
         old.setDate(transaction.getDate());
+        old.setType(transaction.getType()); // 🔥 CẬP NHẬT THÊM TYPE
 
         transactionRepository.save(old);
     }
@@ -88,12 +89,46 @@ public class TransactionService implements ITransactionService {
         return result != null ? result : 0;
     }
 
+    // Tổng thu nhập hôm nay
+    @Override
+    public double getTodayIncome(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Double result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.INCOME, java.time.LocalDate.now());
+        return result != null ? result : 0;
+    }
+
+    // Tổng chi tiêu hôm nay
+    @Override
+    public double getTodayExpense(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Double result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.EXPENSE, java.time.LocalDate.now());
+        return result != null ? result : 0;
+    }
+
+    // Tổng thu nhập tháng này
+    @Override
+    public double getThisMonthIncome(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        java.time.LocalDate startOfMonth = java.time.LocalDate.now().withDayOfMonth(1);
+        java.time.LocalDate endOfMonth = java.time.LocalDate.now().withDayOfMonth(java.time.LocalDate.now().lengthOfMonth());
+        Double result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.INCOME, startOfMonth, endOfMonth);
+        return result != null ? result : 0;
+    }
+
+    // Tổng chi tiêu tháng này
+    @Override
+    public double getThisMonthExpense(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        java.time.LocalDate startOfMonth = java.time.LocalDate.now().withDayOfMonth(1);
+        java.time.LocalDate endOfMonth = java.time.LocalDate.now().withDayOfMonth(java.time.LocalDate.now().lengthOfMonth());
+        Double result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.EXPENSE, startOfMonth, endOfMonth);
+        return result != null ? result : 0;
+    }
+
     // Số dư: tổng thu nhập - tổng chi tiêu
     @Override
     public double getBalance(String username) {
-        return findByUserName(username).stream()
-                .mapToDouble(Transaction::getAmount)
-                .sum();
+        return getTotalIncome(username) - getTotalExpense(username);
     }
 
     // Tổng số giao dịch
