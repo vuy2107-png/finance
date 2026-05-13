@@ -1,0 +1,223 @@
+<div th:fragment="sidebar(activeLink)">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="/user/dashboard" class="sidebar-brand">
+                <i class="fas fa-chart-pie"></i>
+                <span>Finance Pro</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="sidebar-label">Trang chủ</div>
+            <a th:href="@{/user/dashboard}" class="sidebar-link"
+                th:classappend="${activeLink == 'dashboard' ? 'active' : ''}">
+                <i class="fas fa-th-large"></i>
+                <span>Tổng quan</span>
+            </a>
+            <a th:href="@{/user/diary}" class="sidebar-link"
+                th:classappend="${activeLink == 'diary' ? 'active' : ''}">
+                <i class="fas fa-book"></i>
+                <span>Nhật ký chi tiêu</span>
+            </a>
+
+            <div class="sidebar-label">Tài chính</div>
+            <a th:href="@{/user/transactions}" class="sidebar-link"
+                th:classappend="${activeLink == 'transactions' ? 'active' : ''}">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Giao dịch</span>
+            </a>
+            <a th:href="@{/user/wallets}" class="sidebar-link"
+                th:classappend="${activeLink == 'wallets' ? 'active' : ''}">
+                <i class="fas fa-wallet"></i>
+                <span>Ví của tôi</span>
+            </a>
+            <a th:href="@{/user/savings}" class="sidebar-link"
+                th:classappend="${activeLink == 'savings' ? 'active' : ''}">
+                <i class="fas fa-piggy-bank"></i>
+                <span>Tiết kiệm</span>
+            </a>
+
+            <div class="sidebar-label">Cấu hình</div>
+            <a th:href="@{/user/categories}" class="sidebar-link"
+                th:classappend="${activeLink == 'categories' ? 'active' : ''}">
+                <i class="fas fa-tags"></i>
+                <span>Danh mục</span>
+            </a>
+            <a th:href="@{/user/profile}" class="sidebar-link"
+                th:classappend="${activeLink == 'profile' ? 'active' : ''}">
+                <i class="fas fa-user-circle"></i>
+                <span>Hồ sơ</span>
+            </a>
+
+            <div class="sidebar-label">Cửa hàng</div>
+            <a th:href="@{/user/shop}" class="sidebar-link" th:classappend="${activeLink == 'shop' ? 'active' : ''}">
+                <i class="fas fa-store"></i>
+                <span>Cửa hàng Icon</span>
+            </a>
+        </nav>
+
+        <!-- Premium Upgrade Card -->
+        <div class="sidebar-premium-card"
+            th:if="${!#authentication.principal.equals('anonymousUser') && (user == null || !user.premium)}">
+            <div class="premium-card-content">
+                <div class="premium-icon">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div class="premium-text">
+                    <span class="premium-title">Nâng cấp Pro</span>
+                    <p class="premium-desc">Mở khóa mọi tính năng</p>
+                </div>
+                <a href="/user/premium" class="btn-premium-mini">
+                    <i class="fas fa-rocket"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="sidebar-footer" style="border-top: 1px solid var(--border-color); background: #f8fafc;">
+            <div class="user-menu-container">
+                <div class="user-info" th:if="${#authentication.principal != 'anonymousUser'}"
+                    onclick="toggleUserMenu()" style="cursor: pointer; position: relative;">
+                    <div class="user-avatar"
+                        th:style="${user != null and user.premium ? 'border: 2px solid var(--primary);' : ''}">
+                        <span
+                            th:text="${user != null && user.fullName != null && user.fullName.length() > 0 ? #strings.substring(user.fullName, 0, 1).toUpperCase() : (user != null && user.username != null && user.username.length() > 0 ? #strings.substring(user.username, 0, 1).toUpperCase() : 'U')}">U</span>
+                    </div>
+                    <div class="user-details" style="flex: 1;">
+                        <span class="user-name"
+                            th:text="${user != null and user.fullName != null ? user.fullName : #authentication.name}">Full
+                            Name</span>
+                        <div th:if="${user != null and user.premium}"
+                            style="font-size: 0.65rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 2px;">
+                            <i class="fas fa-crown"></i> PREMIUM
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-up" id="userMenuIcon"
+                        style="font-size: 0.7rem; color: var(--text-muted); transition: transform 0.3s;"></i>
+                </div>
+
+                <div id="userDropdown" class="user-dropdown-menu">
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="btn-logout-minimal">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Đăng xuất</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <style>
+        .user-menu-container {
+            position: relative;
+        }
+
+        .user-dropdown-menu {
+            display: none;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 -10px 15px -3px rgba(0, 0, 0, 0.05);
+            animation: slideUp 0.3s ease;
+        }
+
+        .user-dropdown-menu.show {
+            display: block;
+        }
+
+        .btn-logout-minimal {
+            width: 100%;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            color: #e11d48;
+            padding: 0.625rem;
+            border-radius: var(--radius-md);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-logout-minimal:hover {
+            background: #ffe4e6;
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <script th:inline="javascript">
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            const icon = document.getElementById('userMenuIcon');
+            dropdown.classList.toggle('show');
+
+            if (dropdown.classList.contains('show')) {
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Đóng menu khi nhấn ra ngoài
+        document.addEventListener('click', function (event) {
+            const container = document.querySelector('.user-menu-container');
+            const dropdown = document.getElementById('userDropdown');
+            const icon = document.getElementById('userMenuIcon');
+
+            if (container && !container.contains(event.target)) {
+                dropdown.classList.remove('show');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        });
+    </script>
+
+    <!-- Transaction Modal Fragment -->
+    <div th:replace="~{fragments/transaction-modal :: transaction-modal}"></div>
+
+    <!-- Welcome Tour Fragment -->
+    <div th:replace="~{fragments/welcome-tour :: welcome-tour}"></div>
+
+    <!-- Global Toast Container -->
+    <div class="toast-container" id="toastContainer">
+        <div th:if="${message}" class="toast toast-success">
+            <i class="fas fa-check-circle" style="color: var(--success);"></i>
+            <span th:text="${message}"></span>
+        </div>
+        <div th:if="${error}" class="toast toast-error">
+            <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>
+            <span th:text="${error}"></span>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Toast Auto-hide logic
+        (function () {
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toast => {
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    toast.style.transition = 'all 0.5s ease';
+                    setTimeout(() => toast.remove(), 500);
+                }, 4000);
+            });
+        })();
+    </script>
+    <script th:src="@{/js/common.js}"></script>
+</div>

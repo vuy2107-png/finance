@@ -1,0 +1,37 @@
+<div th:fragment="top-header(title, subtitle, headerActions)">
+    <!-- Simulation Warning Banner (Independent Position) -->
+    <div th:if="${user != null && user.testDate != null}" 
+         style="background: #fff7ed; border: 1px solid #fed7aa; padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; color: #9a3412; font-weight: 700; font-size: 0.95rem;">
+            <i class="fas fa-magic" style="color: #ea580c;"></i>
+            <span>BẠN ĐANG TRONG CHẾ ĐỘ GIẢ LẬP: <span th:text="${#temporals.format(user.testDate, 'dd/MM/yyyy')}" style="background: #ffedd5; padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid #fdba74;">14/05/2026</span></span>
+        </div>
+        <form th:action="@{/user/profile/update}" method="post" style="margin: 0;">
+            <input type="hidden" name="testDate" value="">
+            <button type="submit" class="btn btn-sm" style="background: #ea580c; color: white; border: none; padding: 0.5rem 1rem; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);">
+                <i class="fas fa-history"></i> Quay về hiện tại
+            </button>
+        </form>
+    </div>
+
+    <div class="top-header">
+        <div class="header-info">
+            <h1 th:text="${title}">Tiêu đề trang</h1>
+            <p th:text="${subtitle}">Mô tả ngắn gọn về mục đích trang</p>
+        </div>
+        
+        <div class="header-actions">
+            <!-- Content passed from the calling page will be inserted here if using th:insert/th:replace -->
+            <div th:replace="${headerActions} ?: ~{}"></div>
+            
+            <!-- Default User Badge -->
+            <div class="header-user-badge">
+                <div class="avatar-mini" th:text="${user.fullName != null && user.fullName.length() > 0 ? #strings.substring(user.fullName, 0, 1) : (user.username != null && user.username.length() > 0 ? #strings.substring(user.username, 0, 1) : 'U')}">U</div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);" th:text="${user.fullName ?: user.username}">Admin</span>
+                    <span style="font-size: 0.65rem; color: var(--success); font-weight: 600;" th:if="${user.premium}"><i class="fas fa-crown"></i> Premium</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="auth-split-layout">
+        <!-- Left Side - Visual & Testimonial -->
+        <div class="auth-split-visual">
+            <div class="brand">
+                <i class="fas fa-chart-pie"></i> Finance Pro
+            </div>
+            
+            <div class="testimonial">
+                <p class="quote">"Finance Pro đã giúp chúng tôi tối ưu hóa quy trình quản lý chi tiêu. Một công cụ không thể thiếu cho bất kỳ cá nhân nào."</p>
+                <div class="author">
+                    <div class="author-avatar" style="background-image: url('https://ui-avatars.com/api/?name=CEO&background=334155&color=fff'); background-size: cover;"></div>
+                    <div>
+                        <div style="color: white; font-weight: 500;">Nguyễn Văn A</div>
+                        <div style="font-size: 0.875rem;">CEO, TechCorp</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Form -->
+        <div class="auth-split-form-container">
+            <div class="auth-form-wrapper">
+                <div class="auth-form-header">
+                    <h1>Đăng nhập</h1>
+                    <p>Chào mừng trở lại! Vui lòng nhập thông tin của bạn.</p>
+                </div>
+                <div th:if="${message}" class="alert alert-success" style="padding: 0.75rem; border-radius: var(--radius-md); background: #dcfce7; color: #166534; font-size: 0.875rem; margin-bottom: 1.5rem; border: 1px solid #bbf7d0;">
+                    <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+                </div>
+
+                <div th:if="${param.error}" class="alert alert-danger" style="padding: 0.75rem; border-radius: var(--radius-md); background: #fee2e2; color: #991b1b; font-size: 0.875rem; margin-bottom: 1.5rem; border: 1px solid #fecaca;">
+                    <i class="fas fa-exclamation-circle"></i> Tên đăng nhập hoặc mật khẩu không đúng.
+                </div>
+                <form th:action="@{/login}" method="post">
+                    <div class="form-group">
+                        <label for="username">Tên đăng nhập</label>
+                        <input type="text" id="username" name="username" class="form-control" placeholder="Nhập tên đăng nhập" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Mật khẩu</label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0; cursor: pointer; color: var(--text-muted); font-size: 0.875rem; font-weight: 400;">
+                            <input type="checkbox" style="width: auto;"> Ghi nhớ tôi
+                        </label>
+                        <a href="#" style="font-size: 0.875rem; font-weight: 500;">Quên mật khẩu?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" style="padding: 0.75rem; font-size: 1rem;">Đăng nhập vào tài khoản</button>
+                </form>
+
+                <div style="margin-top: 2rem; text-align: center; font-size: 0.875rem; color: var(--text-muted);">
+                    Chưa có tài khoản? <a href="/register" style="font-weight: 600;">Đăng ký miễn phí</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

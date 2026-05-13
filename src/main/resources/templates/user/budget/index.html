@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thiết lập Hạn mức & Ngân sách - Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .budget-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header-section {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-title p {
+            color: #64748b;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-title i {
+            color: #6366f1;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            padding-right: 3rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #6366f1;
+            ring: 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .input-wrapper .currency {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .category-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s;
+        }
+
+        .category-item:hover {
+            border-color: #6366f1;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .cat-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6366f1;
+            font-size: 1.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .cat-info {
+            flex: 1;
+        }
+
+        .cat-info .name {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.875rem;
+            display: block;
+        }
+
+        .cat-budget-input {
+            width: 120px;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            text-align: right;
+        }
+
+        .btn-save {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-save:hover {
+            background: #4f46e5;
+            transform: translateY(-1px);
+        }
+
+        .alert-info {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .alert-info i {
+            margin-top: 0.125rem;
+        }
+
+        @media (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Fragment -->
+        <div th:replace="~{fragments/sidebar :: sidebar('budgets')}"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="budget-container">
+                <div class="header-section">
+                    <div class="header-title">
+                        <h1>Hạn mức & Ngân sách</h1>
+                        <p>Thiết lập kỷ luật chi tiêu để quản lý tài chính hiệu quả hơn.</p>
+                    </div>
+                </div>
+
+                <div class="alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Lưu ý về kỷ luật tài chính:</strong>
+                        <p>Hạn mức ngày sẽ chặn giao dịch nếu vượt quá. Ngân sách danh mục sẽ đưa ra cảnh báo để bạn cân nhắc trước khi chi tiêu.</p>
+                    </div>
+                </div>
+
+                <div class="settings-grid">
+                    <!-- Daily Limit Info Section -->
+                    <div class="card" style="border-left: 4px solid #6366f1;">
+                        <div class="card-title">
+                            <i class="fas fa-calendar-day"></i>
+                            Hạn mức chi tiêu ngày
+                        </div>
+                        <div style="padding: 0.5rem 0;">
+                            <p style="font-size: 0.875rem; color: #475569; line-height: 1.6;">
+                                Hiện tại, Finance Pro hỗ trợ thiết lập <strong>hạn mức chi tiêu riêng biệt cho từng ví</strong> để bạn quản lý dòng tiền chính xác nhất.
+                            </p>
+                            <div style="background: #f1f5f9; border-radius: 0.75rem; padding: 1rem; margin-top: 1rem;">
+                                <h5 style="margin: 0 0 0.5rem 0; font-size: 0.8125rem; font-weight: 700; color: #1e293b;">Cách thiết lập:</h5>
+                                <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.75rem; color: #64748b;">
+                                    <li>Vào mục <strong>"Ví của tôi"</strong></li>
+                                    <li>Chọn ví bạn muốn đặt hạn mức</li>
+                                    <li>Nhấn nút <strong>"Hạn mức"</strong> ở góc trên bên phải</li>
+                                </ol>
+                            </div>
+                            <a href="/user/wallets" class="btn-save" style="width: 100%; justify-content: center; margin-top: 1.5rem; text-decoration: none;">
+                                <i class="fas fa-wallet"></i> Đến trang quản lý Ví
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Category Budgets Section -->
+                    <div class="card">
+                        <div class="card-title">
+                            <i class="fas fa-layer-group"></i>
+                            Ngân sách theo danh mục (Tháng <span th:text="${currentMonth}">5</span>/<span th:text="${currentYear}">2026</span>)
+                        </div>
+                        
+                        <div class="category-list">
+                            <th:block th:each="cat : ${categories}">
+                                <div class="category-item">
+                                    <div class="cat-icon">
+                                        <i th:class="${cat.icon != null ? cat.icon : 'fas fa-tag'}"></i>
+                                    </div>
+                                    <div class="cat-info">
+                                        <span class="name" th:text="${cat.name}">Ăn uống</span>
+                                    </div>
+                                    <input type="number" class="cat-budget-input" 
+                                           th:id="'budget-' + ${cat.id}"
+                                           th:value="${budgetMap.get(cat.id) != null ? budgetMap.get(cat.id) : 0}"
+                                           placeholder="0"
+                                           th:onchange="'saveCategoryBudget(' + ${cat.id} + ', this.value)'">
+                                </div>
+                            </th:block>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        function saveCategoryBudget(categoryId, amount) {
+            const month = /*[[${currentMonth}]]*/ 5;
+            const year = /*[[${currentYear}]]*/ 2026;
+            
+            const formData = new FormData();
+            formData.append('categoryId', categoryId);
+            formData.append('amount', amount);
+            formData.append('month', month);
+            formData.append('year', year);
+
+            fetch('/user/budgets/save-ajax', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if(response.ok) {
+                    // Show a small toast or visual feedback
+                    console.log('Saved budget for category ' + categoryId);
+                }
+            })
+            .catch(err => console.error(err));
+        }
+    </script>
+</body>
+</html>
