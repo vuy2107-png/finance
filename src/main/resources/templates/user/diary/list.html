@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhật ký chi tiêu | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .diary-grid {
+            display: grid;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .diary-summary-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .diary-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .diary-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .diary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .diary-date-circle {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-light);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .diary-date-day {
+            font-size: 1.125rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1;
+        }
+
+        .diary-date-month {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .diary-status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .status-success { background: #d1fae5; color: #059669; }
+        .status-warning { background: #fef3c7; color: #d97706; }
+        .status-danger { background: #fee2e2; color: #dc2626; }
+        .status-none { background: #f1f5f9; color: #94a3b8; }
+
+        .diary-info {
+            flex: 1;
+        }
+
+        .diary-amount-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .diary-amount {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .diary-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .badge-success { background: #ecfdf5; color: #059669; }
+        .badge-warning { background: #fffbeb; color: #d97706; }
+        .badge-danger { background: #fef2f2; color: #dc2626; }
+
+        .diary-progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .diary-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 3px;
+            overflow: hidden;
+            max-width: 200px;
+        }
+
+        .diary-progress-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .diary-limit-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .month-selector {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            outline: none;
+        }
+        
+        .month-selector option {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/sidebar :: sidebar('diary')}"></div>
+
+        <main class="main-content">
+            <!-- Top Header -->
+            <div th:replace="~{fragments/top-header :: top-header('Nhật ký chi tiêu', 'Theo dõi kỷ luật tài chính từng ngày 📝', ~{::headerActions})}">
+                <div th:fragment="headerActions" class="header-actions">
+                    <form th:action="@{/user/diary}" method="get" id="monthForm">
+                        <select name="month" class="month-selector" onchange="this.form.submit()">
+                            <option th:each="m : ${#numbers.sequence(1, 12)}" 
+                                    th:value="${m}" 
+                                    th:text="'Tháng ' + ${m}" 
+                                    th:selected="${m == currentMonth}"></option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <div class="diary-grid">
+                    <!-- Summary Card -->
+                    <div class="diary-summary-card" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); color: white; padding: 1.5rem 2rem; border-radius: var(--radius-lg); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md);">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0; font-weight: 700; font-size: 1.5rem; font-family: 'Outfit', sans-serif; color: white;">Tổng quan tháng <span th:text="${currentMonth}">5</span></h3>
+                            <div style="margin-top: 1rem; display: flex; gap: 2rem; align-items: center;">
+                                <div>
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: white;" th:text="${#lists.size(dailyReport)}">14</div>
+                                    <div style="font-size: 0.7rem; opacity: 0.9; text-transform: uppercase; color: white;">Ngày ghi chép</div>
+                                </div>
+                                <div style="border-left: 1px solid rgba(255,255,255,0.3); padding-left: 2rem;">
+                                    <div style="font-size: 1.25rem; font-weight: 700; color: #4ade80;" 
+                                         th:text="${dailyReport.?[status == 'SUCCESS'].size()}">10</div>
+                                    <div style="font-size: 0.7rem; opacity: 0.9; text-transform: uppercase; color: white;">Kỷ luật tốt</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.15); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-medal" style="font-size: 1.8rem; color: #fbbf24;"></i>
+                        </div>
+                    </div>
+
+                    <!-- List of Days -->
+                    <div class="diary-list">
+                        <div th:if="${#lists.isEmpty(dailyReport)}" class="empty-state" style="text-align: center; padding: 4rem; background: white; border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+                            <i class="fas fa-calendar-day" style="font-size: 3rem; color: var(--border-color); margin-bottom: 1rem;"></i>
+                            <p style="color: var(--text-muted);">Không có dữ liệu trong khoảng thời gian này.</p>
+                        </div>
+
+                        <div th:each="day : ${dailyReport}" class="diary-card" th:onclick="'viewDetailedReport(\'' + ${day.date} + '\')'">
+                            <div class="diary-date-circle">
+                                <span class="diary-date-day" th:text="${#temporals.format(day.date, 'dd')}">01</span>
+                                <span class="diary-date-month" th:text="'T.' + ${#temporals.format(day.date, 'MM')}">T.05</span>
+                            </div>
+
+                            <div class="diary-status-icon" 
+                                 th:classappend="${day.status == 'SUCCESS' ? 'status-success' : (day.status == 'WARNING' ? 'status-warning' : (day.status == 'DANGER' ? 'status-danger' : 'status-none'))}">
+                                <i th:class="${day.status == 'SUCCESS' ? 'fas fa-check' : (day.status == 'WARNING' ? 'fas fa-exclamation' : (day.status == 'DANGER' ? 'fas fa-times' : 'fas fa-minus'))}"></i>
+                            </div>
+
+                            <div class="diary-info">
+                                <div class="diary-amount-row">
+                                    <div class="diary-amount">
+                                        <span th:text="${#numbers.formatDecimal(day.spent, 0, 'COMMA', 0, 'POINT')}">55</span>
+                                        <span th:if="${day.limit > 0}" th:text="' / ' + ${#numbers.formatDecimal(day.limit, 0, 'COMMA', 0, 'POINT')}"> / 70</span>
+                                        <span style="font-weight: 500; font-size: 0.9rem; color: var(--text-muted);"> VNĐ</span>
+                                    </div>
+                                    <span th:if="${day.status != 'NONE'}" class="diary-badge"
+                                          th:classappend="${day.status == 'SUCCESS' ? 'badge-success' : (day.status == 'WARNING' ? 'badge-warning' : 'badge-danger')}"
+                                          th:text="${day.status == 'SUCCESS' ? 'Kỷ luật tốt' : (day.status == 'WARNING' ? 'Cảnh báo' : 'Vượt hạn mức')}"></span>
+                                </div>
+                                
+                                <div class="diary-progress-wrapper">
+                                    <div th:if="${day.limit > 0}" style="flex: 1; display: flex; align-items: center; gap: 1rem;">
+                                        <div class="diary-progress-bar">
+                                            <div class="diary-progress-fill" 
+                                                 th:style="'width: ' + ${day.percent > 100 ? 100 : day.percent} + '%; background: ' + (${day.status == 'DANGER' ? 'var(--danger)' : (day.status == 'WARNING' ? 'var(--warning)' : 'var(--success)')})"></div>
+                                        </div>
+                                        <span class="diary-limit-text" style="font-weight: 600;"
+                                              th:style="'color: ' + (${day.status == 'DANGER' ? 'var(--danger)' : (day.status == 'SUCCESS' ? 'var(--success)' : 'var(--warning)')})"
+                                              th:text="${day.status == 'DANGER' ? 'Bạn đã tiêu quá hạn mức!' : 'Bạn tiêu không quá hạn mức'}"></span>
+                                    </div>
+                                    <div th:unless="${day.limit > 0}" class="diary-limit-text">
+                                        <i class="fas fa-info-circle"></i> Chưa thiết lập hạn mức ngày cho ví
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="diary-action">
+                                <i class="fas fa-chevron-right" style="color: var(--border-color);"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        function viewDetailedReport(date) {
+            window.location.href = '/user/dashboard?testReport=true&date=' + date;
+        }
+    </script>
+</body>
+</html>

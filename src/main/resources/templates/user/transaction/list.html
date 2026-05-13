@@ -3,91 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách Giao dịch | Finance Pro</title>
+    <title>Lịch sử Giao dịch | Finance Pro</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- Top Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/user/dashboard" class="navbar-brand">
-                <i class="fas fa-chart-pie"></i> Finance Pro
-            </a>
-            <div class="navbar-nav">
-                <a th:href="@{/user/dashboard}" class="nav-link">Tổng quan</a>
-                <a th:href="@{/user/transactions}" class="nav-link active">Giao dịch</a>
-                <form th:action="@{/logout}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Đăng xuất</button>
-                </form>
+    <div class="app-container">
+        <!-- Sidebar Fragment -->
+        <div th:replace="~{fragments/sidebar :: sidebar('transactions')}"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div th:replace="~{fragments/top-header :: top-header('Lịch sử Giao dịch', 'Theo dõi tất cả các khoản thu nhập và chi tiêu', ~{::headerActions})}">
+                <div th:fragment="headerActions" class="header-actions">
+                    <button type="button" onclick="showQuickModal()" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Thêm giao dịch
+                    </button>
+                </div>
             </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">Quản lý giao dịch</h1>
-            <a th:href="@{/user/transactions/create}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Thêm giao dịch mới
-            </a>
-        </div>
+            <div class="container">
 
-        <div class="table-wrapper">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">#</th>
-                        <th>Ngày</th>
-                        <th>Mô tả</th>
-                        <th>Loại</th>
-                        <th style="text-align: right;">Số tiền</th>
-                        <th style="text-align: right; width: 120px;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="t, stat : ${transactions}">
-                        <td th:text="${stat.count}" style="color: var(--text-muted);"></td>
-                        <td th:text="${t.date}" style="font-weight: 500;"></td>
-                        <td th:text="${t.description}"></td>
-                        <td>
-                            <span th:if="${t.type.name() == 'INCOME'}" class="badge badge-income">Thu nhập</span>
-                            <span th:if="${t.type.name() == 'EXPENSE'}" class="badge badge-expense">Chi tiêu</span>
-                        </td>
-                        <td style="text-align: right; font-weight: 600;">
-                            <span th:class="${t.type.name() == 'INCOME' ? 'text-success' : 'text-danger'}" 
-                                  th:style="${t.type.name() == 'INCOME' ? 'color: var(--success);' : 'color: var(--danger);'}"
-                                  th:text="${t.type.name() == 'INCOME' ? '+' : '-'} + ${#numbers.formatDecimal(t.amount, 0, 'COMMA', 2, 'POINT')} + ' ₫'">
-                            </span>
-                        </td>
-                        <td style="text-align: right;">
-                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                <a th:href="@{/user/transactions/edit/{id}(id=${t.id})}" class="btn btn-secondary" style="padding: 0.375rem 0.5rem;" title="Sửa">
-                                    <i class="fas fa-pen"></i>
-                                </a>
-                                <a th:href="@{/user/transactions/delete/{id}(id=${t.id})}" class="btn btn-secondary" 
-                                   style="padding: 0.375rem 0.5rem; color: var(--danger);" title="Xóa"
-                                   onclick="return confirm('Bạn có chắc chắn muốn xoá giao dịch này?')">
-                                    <i class="fas fa-trash"></i>
-                                </a>
+                <!-- Compact Search & Filter Bar -->
+                <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
+                    <form th:action="@{/user/transactions}" method="get" id="filterForm">
+                        <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <div style="flex: 1; position: relative;">
+                                <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Tìm kiếm giao dịch..." 
+                                       style="padding-left: 2.75rem; height: 42px; border-radius: var(--radius-lg);">
                             </div>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(transactions)}">
-                        <td colspan="6" style="text-align: center; padding: 3rem 1rem;">
-                            <div style="color: var(--text-muted); margin-bottom: 1rem;">
-                                <i class="fas fa-inbox" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                            
+                            <button type="button" class="btn btn-secondary" onclick="toggleAdvancedFilter()" style="height: 42px; padding: 0 1rem; border-radius: var(--radius-lg); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-filter"></i> <span style="font-size: 0.875rem;">Bộ lọc</span>
+                            </button>
+                            
+                            <button type="submit" class="btn btn-primary" style="height: 42px; padding: 0 1.5rem; border-radius: var(--radius-lg);">
+                                Tìm kiếm
+                            </button>
+                            
+                            <a th:href="@{/user/transactions}" class="btn btn-secondary" style="height: 42px; width: 42px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-lg);" title="Đặt lại">
+                                <i class="fas fa-redo"></i>
+                            </a>
+                        </div>
+
+                        <!-- Advanced Filters (Hidden by default) -->
+                        <div id="advancedFilter" th:style="${startDate != null || endDate != null || walletId != null || categoryId != null ? 'display: grid;' : 'display: none;'}" 
+                             style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
+                            
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; display: block;">TỪ NGÀY</label>
+                                <input type="date" name="startDate" th:value="${startDate}" class="form-control" style="height: 38px; font-size: 0.875rem;">
                             </div>
-                            <div style="font-weight: 500; margin-bottom: 0.25rem;">Chưa có dữ liệu</div>
-                            <div style="font-size: 0.875rem; color: var(--text-muted);">Bạn chưa có giao dịch nào được ghi lại.</div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                            
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; display: block;">ĐẾN NGÀY</label>
+                                <input type="date" name="endDate" th:value="${endDate}" class="form-control" style="height: 38px; font-size: 0.875rem;">
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; display: block;">VÍ</label>
+                                <select name="walletId" class="form-control" style="height: 38px; font-size: 0.875rem;">
+                                    <option value="">Tất cả ví</option>
+                                    <option th:each="w : ${wallets}" th:value="${w.id}" th:text="${w.name}" th:selected="${w.id == walletId}"></option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem; display: block;">DANH MỤC</label>
+                                <select name="categoryId" class="form-control" style="height: 38px; font-size: 0.875rem;">
+                                    <option value="">Tất cả danh mục</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${c.id == categoryId}"></option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>NGÀY</th>
+                                    <th>DANH MỤC</th>
+                                    <th>VÍ</th>
+                                    <th>MÔ TẢ</th>
+                                    <th style="text-align: right;">SỐ TIỀN</th>
+                                    <th style="text-align: center;">HÀNH ĐỘNG</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <th:block th:each="entry : ${groupedTransactions}">
+                                    <tr style="background: #f8fafc; border-bottom: 1px solid var(--border-color);">
+                                        <td colspan="6" style="padding: 0.75rem 1rem; font-weight: 700; color: var(--primary-color);">
+                                            <i class="far fa-calendar-alt"></i> 
+                                            <span th:text="${#temporals.format(entry.key, 'dd/MM/yyyy')}"></span>
+                                        </td>
+                                    </tr>
+                                    <tr th:each="t : ${entry.value}">
+                                        <td></td> <!-- Empty date cell since we have header -->
+                                        <td>
+                                            <span class="badge" th:classappend="${t.type.name() == 'INCOME' ? 'badge-income' : (t.type.name() == 'TRANSFER' ? 'badge-blue' : 'badge-expense')}"
+                                                  th:text="${t.category != null ? t.category.name : (t.type.name() == 'TRANSFER' ? 'Chuyển tiền' : 'Khác')}"></span>
+                                        </td>
+                                        <td>
+                                            <div th:if="${t.type.name() == 'TRANSFER'}">
+                                                <span th:text="${t.wallet.name}"></span> <i class="fas fa-arrow-right" style="font-size: 0.75rem; margin: 0 0.25rem;"></i> <span th:text="${t.toWallet.name}"></span>
+                                            </div>
+                                            <div th:if="${t.type.name() != 'TRANSFER'}">
+                                                <span th:text="${t.wallet != null ? t.wallet.name : 'Ví mặc định'}"></span>
+                                            </div>
+                                        </td>
+                                        <td th:text="${t.description}"></td>
+                                        <td style="text-align: right; font-weight: 600;" 
+                                            th:class="${t.type.name() == 'INCOME' ? 'text-success' : (t.type.name() == 'TRANSFER' ? 'text-primary' : 'text-danger')}"
+                                            th:text="${t.type.name() == 'INCOME' ? '+' : (t.type.name() == 'TRANSFER' ? '→' : '-')} + ${#numbers.formatDecimal(t.amount, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+                                        <td style="text-align: center;">
+                                            <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                                                <th:block th:with="today=${currentDate ?: #temporals.createNow()}">
+                                                    <th:block th:if="${t.date.monthValue == today.monthValue and t.date.year == today.year}">
+                                                        <span th:if="${t.description != null and t.description.contains('Nạp tiền vào quỹ')}" 
+                                                              class="badge" style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">Tiết kiệm</span>
+                                                        <span th:if="${t.description != null and t.description.contains('Khởi tạo')}" 
+                                                              class="badge" style="background: #d1fae5; color: #059669; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">Vốn quản lý</span>
+                                                        <span th:if="${t.description != null and !t.description.contains('Nạp tiền vào quỹ') and !t.description.contains('Khởi tạo')}"
+                                                              th:class="${'badge ' + (t.type.name() == 'INCOME' ? 'badge-income' : (t.type.name() == 'EXPENSE' ? 'badge-expense' : 'badge-transfer'))}"
+                                                              th:text="${t.type.name() == 'INCOME' ? 'Thu nhập' : (t.type.name() == 'EXPENSE' ? 'Chi tiêu' : 'Chuyển tiền')}"></span>
+                                                        
+                                                        <button type="button" th:onclick="'editQuickTransaction(' + ${t.id} + ')'" class="btn btn-secondary" style="padding: 0.25rem 0.5rem;"><i class="fas fa-edit"></i></button>
+                                                        <form th:action="@{/user/transactions/delete}" method="post" 
+                                                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa giao dịch này? Số dư ví sẽ được hoàn lại.')"
+                                                              style="display: inline;">
+                                                            <input type="hidden" name="id" th:value="${t.id}">
+                                                            <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem;">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </th:block>
+                                                    <th:block th:unless="${t.date.monthValue == today.monthValue and t.date.year == today.year}">
+                                                        <span class="badge" style="background: #f1f5f9; color: #94a3b8; font-size: 0.7rem; padding: 0.25rem 0.5rem;">
+                                                            <i class="fas fa-lock"></i> Đã đóng
+                                                        </span>
+                                                    </th:block>
+                                                </th:block>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </th:block>
+                            </tbody>
+                        </table>
+
+                        <!-- Pagination -->
+                        <div th:if="${page.totalPages > 1}" class="pagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem; padding: 1rem 0;">
+                            <a th:if="${page.hasPrevious()}" 
+                               th:href="@{/user/transactions(page=${page.number - 1}, startDate=${startDate}, endDate=${endDate}, walletId=${walletId}, categoryId=${categoryId}, keyword=${keyword})}" 
+                               class="btn btn-secondary" style="padding: 0.5rem 1rem; border-radius: var(--radius-md);">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            
+                            <th:block th:each="i : ${#numbers.sequence(0, page.totalPages - 1)}">
+                                <a th:href="@{/user/transactions(page=${i}, startDate=${startDate}, endDate=${endDate}, walletId=${walletId}, categoryId=${categoryId}, keyword=${keyword})}" 
+                                   class="btn" th:classappend="${i == page.number ? 'btn-primary' : 'btn-secondary'}"
+                                   th:text="${i + 1}" style="min-width: 40px; padding: 0.5rem; border-radius: var(--radius-md); text-align: center;"></a>
+                            </th:block>
+
+                            <a th:if="${page.hasNext()}" 
+                               th:href="@{/user/transactions(page=${page.number + 1}, startDate=${startDate}, endDate=${endDate}, walletId=${walletId}, categoryId=${categoryId}, keyword=${keyword})}" 
+                               class="btn btn-secondary" style="padding: 0.5rem 1rem; border-radius: var(--radius-md);">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
-
+    <script th:inline="javascript">
+        function toggleAdvancedFilter() {
+            const adv = document.getElementById('advancedFilter');
+            if (adv.style.display === 'none' || adv.style.display === '') {
+                adv.style.display = 'grid';
+            } else {
+                adv.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

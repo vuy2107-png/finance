@@ -1,0 +1,53 @@
+Starting a Gradle Daemon, 1 incompatible and 4 stopped Daemons could not be reused, use --status for details
+> Task :compileJava UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.6)
+
+2026-05-07T13:20:30.098+07:00  INFO 2592 --- [  restartedMain] com.codegym.finance.FinanceApplication   : Starting FinanceApplication using Java 17.0.12 with PID 2592 (D:\Module4\project\finance\build\classes\java\main started by Admin in D:\Module4\project\finance)
+2026-05-07T13:20:30.109+07:00  INFO 2592 --- [  restartedMain] com.codegym.finance.FinanceApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-05-07T13:20:30.190+07:00  INFO 2592 --- [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-07T13:20:30.190+07:00  INFO 2592 --- [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-07T13:20:31.244+07:00  INFO 2592 --- [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-07T13:20:31.324+07:00  INFO 2592 --- [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 79 ms. Found 7 JPA repository interfaces.
+2026-05-07T13:20:32.182+07:00  INFO 2592 --- [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8081 (http)
+2026-05-07T13:20:32.204+07:00  INFO 2592 --- [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-05-07T13:20:32.204+07:00  INFO 2592 --- [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.21]
+2026-05-07T13:20:32.278+07:00  INFO 2592 --- [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2086 ms
+2026-05-07T13:20:32.474+07:00  INFO 2592 --- [  restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-07T13:20:32.589+07:00  INFO 2592 --- [  restartedMain] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-05-07T13:20:33.245+07:00  INFO 2592 --- [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-07T13:20:33.280+07:00  INFO 2592 --- [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-05-07T13:20:33.955+07:00  INFO 2592 --- [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4fd0b982
+2026-05-07T13:20:33.963+07:00  INFO 2592 --- [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-05-07T13:20:34.563+07:00  WARN 2592 --- [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-07T13:20:34.597+07:00  INFO 2592 --- [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:3306/finance_tracker]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.0.44
+	Default catalog/schema: finance_tracker/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-05-07T13:20:36.157+07:00  INFO 2592 --- [  restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-07T13:20:36.397+07:00  INFO 2592 --- [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-07T13:20:36.496+07:00  INFO 2592 --- [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-07T13:20:38.882+07:00  WARN 2592 --- [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-05-07T13:20:39.002+07:00  INFO 2592 --- [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-05-07T13:20:39.614+07:00  INFO 2592 --- [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8081 (http) with context path '/'
+2026-05-07T13:20:39.614+07:00  INFO 2592 --- [  restartedMain] com.codegym.finance.FinanceApplication   : Started FinanceApplication in 10.276 seconds (process running for 11.283)

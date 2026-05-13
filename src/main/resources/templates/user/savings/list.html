@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mục tiêu tiết kiệm | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/savings.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Fragment -->
+        <div th:replace="~{fragments/sidebar :: sidebar('savings')}"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div th:replace="~{fragments/top-header :: top-header('Mục tiêu tiết kiệm', 'Quản lý và theo dõi tiến độ các khoản tiết kiệm của bạn', ~{::headerActions})}">
+                <div th:fragment="headerActions" class="header-actions">
+                    <button class="btn btn-primary" onclick="openAddGoalModal()">
+                        <i class="fas fa-plus"></i> Tạo mục tiêu mới
+                    </button>
+                </div>
+            </div>
+
+            <div class="container">
+
+                <div th:if="${message}" class="alert alert-success" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+                </div>
+
+                <!-- Goals Grid -->
+                <div class="goals-grid">
+                    <div th:each="goal : ${goals}" class="goal-card" th:classappend="${goal.status.name() == 'ACHIEVED' ? 'achieved' : ''}">
+                        <div class="achieved-badge">ĐÃ ĐẠT</div>
+                        
+                        <div class="goal-header">
+                            <div class="goal-icon" th:style="|background-color: ${goal.colorCode != null and goal.colorCode != '' ? goal.colorCode : '#3b82f6'}|">
+                                <i th:class="${goal.icon != null and goal.icon != '' ? 'fas ' + goal.icon : 'fas fa-piggy-bank'}"></i>
+                            </div>
+                            <div class="goal-actions">
+                                <form th:action="@{/user/savings/delete/{id}(id=${goal.id})}" method="post" onsubmit="return confirm('Xóa mục tiêu này?')">
+                                    <button type="submit" class="btn-delete" title="Xóa"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="goal-title" th:text="${goal.name}">Mua xe hơi</div>
+                        
+                        <div class="goal-amounts" style="margin-top: 1rem;">
+                            <div class="current-amount" th:text="${#numbers.formatDecimal(goal.currentAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                            <div class="target-amount">Mục tiêu: <span th:text="${#numbers.formatDecimal(goal.targetAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span></div>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <div class="progress-container">
+                                <div class="progress-bar" 
+                                     th:style="|width: ${goal.progressPercentage}%; background-color: ${goal.colorCode != null and goal.colorCode != '' ? goal.colorCode : '#3b82f6'}|"></div>
+                            </div>
+                            <span class="progress-text" th:text="${#numbers.formatDecimal(goal.progressPercentage, 0, 1)} + '%'">0%</span>
+                        </div>
+
+                        <button class="btn-add-funds" style="width: 100%; margin-top: 1.5rem;"
+                                th:attr="data-goal-id=${goal.id}, data-goal-name=${goal.name}"
+                                onclick="openAddFundsModal(this.getAttribute('data-goal-id'), this.getAttribute('data-goal-name'))">
+                            <i class="fas fa-plus-circle"></i> Nạp tiền vào quỹ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Goal Modal -->
+    <div id="addGoalModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Tạo mục tiêu tiết kiệm mới</h2>
+                <button type="button" class="modal-close" onclick="closeAddGoalModal()">&times;</button>
+            </div>
+            <form th:action="@{/user/savings/create}" method="post" th:object="${newGoal}">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="goalName">Tên mục tiêu</label>
+                        <input type="text" th:field="*{name}" id="goalName" class="form-control" placeholder="VD: Mua xe, Đi du lịch..." required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="targetAmount">Số tiền mục tiêu (đ)</label>
+                            <input type="number" th:field="*{targetAmount}" id="targetAmount" class="form-control" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="currentAmount">Số tiền đã có (đ)</label>
+                            <input type="number" th:field="*{currentAmount}" id="currentAmount" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetDate">Ngày dự kiến hoàn thành</label>
+                        <input type="date" th:field="*{targetDate}" id="targetDate" class="form-control" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="goalColor">Màu sắc</label>
+                            <input type="color" th:field="*{colorCode}" id="goalColor" class="form-control" style="height: 45px; padding: 2px;" value="#3b82f6">
+                        </div>
+                        <div class="form-group">
+                            <label for="goalIcon">Biểu tượng</label>
+                            <select th:field="*{icon}" id="goalIcon" class="form-control">
+                                <option value="fa-piggy-bank">Con heo</option>
+                                <option value="fa-car">Xe hơi</option>
+                                <option value="fa-house">Nhà</option>
+                                <option value="fa-plane">Máy bay</option>
+                                <option value="fa-laptop">Laptop</option>
+                                <option value="fa-mobile-screen">Điện thoại</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddGoalModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu mục tiêu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Funds Modal -->
+    <div id="addFundsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Nạp tiền vào quỹ: <span id="fundsGoalName"></span></h2>
+                <button type="button" class="modal-close" onclick="closeAddFundsModal()">&times;</button>
+            </div>
+            <form th:action="@{/user/savings/add-funds}" method="post">
+                <input type="hidden" name="goalId" id="fundsGoalId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fundsAmount">Số tiền nạp (đ)</label>
+                        <input type="number" name="amount" id="fundsAmount" class="form-control" placeholder="0" required step="1000">
+                        <div id="fundsBalanceWarning" style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem; display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fundsWallet">Từ ví</label>
+                        <select name="walletId" id="fundsWallet" class="form-control" required>
+                            <option value="">-- Chọn ví --</option>
+                            <option th:each="w : ${wallets}" 
+                                    th:value="${w.id}" 
+                                    th:text="${w.name}"
+                                    th:attr="data-balance=${w.balance}"></option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddFundsModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitFunds">Nạp tiền</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:src="@{/js/savings.js}"></script>
+</body>
+</html>

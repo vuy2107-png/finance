@@ -1,0 +1,97 @@
+<div th:fragment="budget-modal">
+    <!-- Budget Modal -->
+    <div id="budgetModal" class="modal-overlay" style="z-index: 10001;">
+        <div class="modal-content" style="max-width: 800px; padding: 0; border: none; overflow: hidden; margin: auto;">
+            <div id="budgetModalHeader" class="modal-header" style="background: white; border-bottom: 2px solid #f1f5f9; padding: 1.5rem 2rem;">
+                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 12px; background: #e0e7ff; color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    Thiết lập Ngân sách & Hạn mức
+                </h2>
+                <button type="button" onclick="closeBudgetModal()" 
+                        style="width: 36px; height: 36px; border-radius: 10px; border: none; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 1.2rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; max-height: 70vh; overflow-y: auto;">
+                <!-- Wallet Info (Dynamic via JS) -->
+                <div id="walletInfoSection" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                    <h3 id="modalWalletName" style="margin: 0; color: var(--text-main); font-weight: 700;">Ví: <span id="targetWalletName"></span></h3>
+                </div>
+
+                <!-- Daily Limit Section -->
+                <div style="background: #f1f5f9; border-radius: 1rem; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 40px; height: 40px; border-radius: 0.75rem; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-weight: 700; color: #1e293b;">Hạn mức chi tiêu mỗi ngày</h4>
+                            <p style="margin: 0; font-size: 0.8125rem; color: #64748b;">Hệ thống sẽ cảnh báo khi bạn chi tiêu vượt quá mức này trong ngày.</p>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <div style="position: relative;">
+                            <input type="number" id="dailySpendingLimit" 
+                                   class="form-control" 
+                                   placeholder="Ví dụ: 200,000"
+                                   style="height: 50px; font-size: 1.125rem; font-weight: 700; padding-right: 3rem; border-radius: 0.75rem;">
+                            <span style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); font-weight: 600; color: #94a3b8;">đ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Budget Section -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-tags" style="color: var(--primary-color);"></i> Ngân sách theo danh mục (Tháng <span id="modalMonthYear"></span>)
+                    </h4>
+                    <div id="categoryBudgetGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #f8fafc; padding: 1.25rem 2rem; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <span id="saveStatus" style="font-size: 0.875rem; color: var(--success); display: none;">
+                    <i class="fas fa-check-circle"></i> Đã lưu tự động
+                </span>
+                <button type="button" class="btn btn-primary btn-done" onclick="closeBudgetModal()" style="border-radius: 12px; padding: 0.75rem 2rem; font-weight: 700; background: #6366f1; border: none; transition: all 0.2s;">
+                    Xong
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .budget-input-group {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .budget-input-group:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .modal-header button:hover {
+            background: #fecaca !important;
+            transform: rotate(90deg);
+        }
+        .btn-done:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+    </style>
+    
+    <script th:inline="javascript">
+        window.allCategories = [
+            /*[# th:each="cat : ${categories}"]*/
+            { id: [[${cat.id}]], name: [[${cat.name}]], icon: [[${cat.icon}]], type: [[${cat.type.name()}]] },
+            /*[/]*/
+        ];
+        window.currentMonth = [[${currentMonth != null ? currentMonth : T(java.time.LocalDate).now().getMonthValue()}]];
+        window.currentYear = [[${currentYear != null ? currentYear : T(java.time.LocalDate).now().getYear()}]];
+    </script>
+</div>

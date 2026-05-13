@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nạp tiền vào tài khoản | Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .deposit-container {
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        .payment-method-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+        .payment-method-card:hover {
+            border-color: #6366f1;
+            background: #f8fafc;
+        }
+        .payment-method-card.active {
+            border-color: #6366f1;
+            background: #eef2ff;
+        }
+        .method-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .amount-preset {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 1rem 0;
+        }
+        .preset-btn {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .preset-btn:hover {
+            background: #f1f5f9;
+            border-color: #6366f1;
+        }
+    </style>
+</head>
+<body style="background: #f8fafc;">
+
+    <div class="app-container">
+        <div th:replace="~{fragments/sidebar :: sidebar('shop')}"></div>
+
+        <main class="main-content">
+            <div class="deposit-container">
+                <header style="margin-bottom: 2rem; text-align: center;">
+                    <h1 style="font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">Nạp tiền ảo</h1>
+                    <p style="color: #64748b;">Mô phỏng quy trình nạp tiền để kiểm thử tính năng mua sắm.</p>
+                </header>
+
+                <div class="card" style="padding: 2rem; border-radius: 24px;">
+                    <div style="margin-bottom: 2rem; padding: 1.5rem; background: #6366f1; border-radius: 16px; color: white;">
+                        <div style="font-size: 0.875rem; opacity: 0.8; font-weight: 600;">SỐ DƯ HIỆN TẠI</div>
+                        <div style="font-size: 1.75rem; font-weight: 800;" th:text="${#numbers.formatDecimal(user.balance, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                    </div>
+
+                    <form th:action="@{/user/deposit/process}" method="post">
+                        <div class="form-group">
+                            <label style="font-weight: 700; margin-bottom: 0.5rem; display: block;">Chọn mệnh giá nạp (đ)</label>
+                            <input type="number" name="amount" id="depositAmount" class="form-control" placeholder="Nhập số tiền..." required style="font-size: 1.25rem; font-weight: 700; height: 55px; border-radius: 12px;">
+                            
+                            <div class="amount-preset">
+                                <button type="button" class="preset-btn" onclick="setAmount(50000)">50,000</button>
+                                <button type="button" class="preset-btn" onclick="setAmount(100000)">100,000</button>
+                                <button type="button" class="preset-btn" onclick="setAmount(500000)">500,000</button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <label style="font-weight: 700; margin-bottom: 1rem; display: block;">Phương thức thanh toán giả lập</label>
+                            
+                            <div class="payment-method-card active">
+                                <div class="method-icon" style="color: #3b82f6;"><i class="fas fa-university"></i></div>
+                                <div>
+                                    <div style="font-weight: 700;">Thẻ ATM / Tài khoản ngân hàng</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Hỗ trợ nạp nhanh qua hệ thống ảo</div>
+                                </div>
+                                <i class="fas fa-check-circle" style="margin-left: auto; color: #6366f1;"></i>
+                            </div>
+
+                            <div class="payment-method-card">
+                                <div class="method-icon" style="color: #ef4444;"><i class="fas fa-wallet"></i></div>
+                                <div>
+                                    <div style="font-weight: 700;">Ví điện tử (Momo/ZaloPay)</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Mô phỏng quét mã QR</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1.25rem; border-radius: 16px; font-weight: 800; font-size: 1.1rem; margin-top: 2rem;">
+                            XÁC NHẬN NẠP TIỀN NGAY
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card" style="margin-top: 2rem; border-radius: 24px; padding: 1.5rem;">
+                    <h3 style="font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-history" style="color: #6366f1;"></i> Lịch sử nạp tiền gần đây
+                    </h3>
+                    
+                    <div th:if="${#lists.isEmpty(deposits)}" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                        <i class="fas fa-receipt" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p>Chưa có dữ liệu nạp tiền.</p>
+                    </div>
+
+                    <div th:unless="${#lists.isEmpty(deposits)}" class="table-responsive">
+                        <table class="table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="text-align: left; border-bottom: 2px solid #f1f5f9;">
+                                    <th style="padding: 1rem 0; color: #64748b; font-size: 0.875rem;">Thời gian</th>
+                                    <th style="padding: 1rem 0; color: #64748b; font-size: 0.875rem;">Số tiền</th>
+                                    <th style="padding: 1rem 0; color: #64748b; font-size: 0.875rem; text-align: right;">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="deposit : ${deposits}" style="border-bottom: 1px solid #f8fafc;">
+                                    <td style="padding: 1rem 0; font-size: 0.875rem; color: #475569;" th:text="${#temporals.format(deposit.date, 'dd/MM/yyyy')}"></td>
+                                    <td style="padding: 1rem 0; font-weight: 700; color: #10b981;">
+                                        +<span th:text="${#numbers.formatDecimal(deposit.amount, 0, 'COMMA', 0, 'POINT')}"></span>đ
+                                    </td>
+                                    <td style="padding: 1rem 0; text-align: right;">
+                                        <span style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.6rem; border-radius: 99px; font-size: 0.75rem; font-weight: 700;">THÀNH CÔNG</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <p style="text-align: center; margin-top: 2rem; color: #94a3b8; font-size: 0.875rem;">
+                    <i class="fas fa-shield-alt"></i> Đây là môi trường thử nghiệm. Không có tiền thật bị trừ.
+                </p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function setAmount(val) {
+            document.getElementById('depositAmount').value = val;
+        }
+    </script>
+</body>
+</html>

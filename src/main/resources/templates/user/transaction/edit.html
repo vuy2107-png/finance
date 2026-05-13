@@ -10,76 +10,109 @@
 </head>
 <body>
 
-    <!-- Top Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/user/dashboard" class="navbar-brand">
-                <i class="fas fa-chart-pie"></i> Finance Pro
-            </a>
-            <div class="navbar-nav">
-                <a th:href="@{/user/dashboard}" class="nav-link">Tổng quan</a>
-                <a th:href="@{/user/transactions}" class="nav-link active">Giao dịch</a>
-                <form th:action="@{/logout}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">Đăng xuất</button>
-                </form>
-            </div>
-        </div>
-    </nav>
+    <div class="app-container">
+        <!-- Sidebar Fragment -->
+        <div th:replace="~{fragments/sidebar :: sidebar('transactions')}"></div>
 
-    <!-- Main Content -->
-    <div class="container" style="max-width: 800px;">
-        <div style="margin-bottom: 2rem;">
-            <a th:href="@{/user/transactions}" style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i class="fas fa-arrow-left"></i> Quay lại danh sách
-            </a>
-        </div>
-
-        <div class="card">
-            <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
-                <div>
-                    <h1 class="card-title" style="font-size: 1.5rem;">Cập nhật giao dịch</h1>
-                    <p style="margin-top: 0.25rem; font-size: 0.875rem;">Chỉnh sửa thông tin và lưu lại các thay đổi.</p>
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container" style="max-width: 800px;">
+                <div style="margin-bottom: 2rem;">
+                    <a th:href="@{/user/transactions}" style="color: var(--text-muted); font-size: 0.875rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                    </a>
                 </div>
-            </div>
 
-            <form th:action="@{/user/transactions/edit}" method="post" th:object="${transaction}">
-                <input type="hidden" th:field="*{id}"/>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                    <div class="form-group">
-                        <label for="type">Loại giao dịch</label>
-                        <select th:field="*{type}" id="type" class="form-control" required>
-                            <option value="INCOME">Thu nhập</option>
-                            <option value="EXPENSE">Chi tiêu</option>
-                        </select>
+                <div class="card">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+                        <div>
+                            <h1 class="card-title" style="font-size: 1.5rem;">Cập nhật giao dịch</h1>
+                            <p style="margin-top: 0.25rem; font-size: 0.875rem;">Chỉnh sửa thông tin và lưu lại các thay đổi.</p>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="amount">Số tiền (VNĐ)</label>
-                        <input type="number" step="0.01" th:field="*{amount}" id="amount" class="form-control" required>
-                        <div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></div>
-                    </div>
-                </div>
+                    <form th:action="@{/user/transactions/edit}" method="post" th:object="${transaction}">
+                        <input type="hidden" th:field="*{id}"/>
 
-                <div class="form-group">
-                    <label for="date">Ngày thực hiện</label>
-                    <input type="date" th:field="*{date}" id="date" class="form-control" required>
-                    <div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;" th:if="${#fields.hasErrors('date')}" th:errors="*{date}"></div>
-                </div>
+                        <!-- Global Error Message -->
+                        <div th:if="${error}" class="alert alert-danger" style="margin-bottom: 1.5rem;">
+                            <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
+                        </div>
 
-                <div class="form-group">
-                    <label for="description">Mô tả chi tiết</label>
-                    <textarea th:field="*{description}" id="description" class="form-control"></textarea>
-                    <div style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;" th:if="${#fields.hasErrors('description')}" th:errors="*{description}"></div>
-                </div>
+                        <!-- Validation Errors -->
+                        <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger" style="margin-bottom: 1.5rem;">
+                            <ul style="margin: 0; padding-left: 1.25rem;">
+                                <li th:each="err : ${#fields.allErrors()}" th:text="${err}"></li>
+                            </ul>
+                        </div>
 
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-                    <a th:href="@{/user/transactions}" class="btn btn-secondary">Hủy bỏ</a>
-                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label for="type">Loại giao dịch</label>
+                                <select th:field="*{type}" id="type" class="form-control" required>
+                                    <option value="INCOME">Thu nhập</option>
+                                    <option value="EXPENSE">Chi tiêu</option>
+                                    <option value="TRANSFER">Chuyển tiền</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="categoryGroup">
+                                <label for="categoryInput">Danh mục</label>
+                                <input type="text" name="categoryName" id="categoryInput" list="categoryOptions" 
+                                       th:value="${transaction.category != null ? transaction.category.name : ''}"
+                                       class="form-control" placeholder="Chọn hoặc gõ danh mục mới..." required>
+                                <datalist id="categoryOptions">
+                                    <option th:each="cat : ${categories}" 
+                                            th:value="${cat.name}"
+                                            th:attr="data-type=${cat.type != null ? cat.type.name() : ''}"></option>
+                                </datalist>
+                            </div>
+
+                            <div class="form-group" id="toWalletGroup" style="display: none;">
+                                <label for="toWallet">Đến ví</label>
+                                <select th:field="*{toWallet}" id="toWallet" class="form-control">
+                                    <option value="">-- Chọn ví nhận --</option>
+                                    <option th:each="w : ${wallets}" th:value="${w.id}" th:text="${w.name}"></option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="amount">Số tiền (VNĐ)</label>
+                                <input type="number" step="1000" th:field="*{amount}" id="amount" class="form-control" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="wallet">Ví thực hiện</label>
+                                <select th:field="*{wallet}" id="wallet" class="form-control" required>
+                                    <option value="">-- Chọn ví --</option>
+                                    <option th:each="w : ${wallets}" 
+                                            th:value="${w.id}" 
+                                            th:text="${w.name}"
+                                            th:attr="data-balance=${w.balance}"></option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="date">Ngày thực hiện</label>
+                                <input type="date" th:field="*{date}" id="date" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Mô tả chi tiết</label>
+                            <textarea th:field="*{description}" id="description" class="form-control"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                            <a th:href="@{/user/transactions}" class="btn btn-secondary">Hủy bỏ</a>
+                            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
+            </div>
+        </main>
     </div>
 
+    <script th:src="@{/js/transaction-form.js}"></script>
 </body>
 </html>
