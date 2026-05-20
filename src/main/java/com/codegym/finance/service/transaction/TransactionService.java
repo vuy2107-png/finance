@@ -13,6 +13,7 @@ import com.codegym.finance.service.transaction.ITransactionService;
 import com.codegym.finance.service.wallet.IWalletService;
 import com.codegym.finance.repository.budget.BudgetRepository;
 import com.codegym.finance.exception.SpendingLimitException;
+import com.codegym.finance.service.budget.IBudgetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,6 +45,9 @@ public class TransactionService implements ITransactionService {
     @Autowired
     private com.codegym.finance.service.user.IUserService userService;
 
+    @Autowired
+    private IBudgetService budgetService;
+
     @Override
     public List<Transaction> findByUserName(String username) {
         User user = userRepository.findByUsername(username)
@@ -64,14 +68,21 @@ public class TransactionService implements ITransactionService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check Daily Limit - We only WARN
-        // Check Category Budget - We only WARN
+        // Prevent future dates
+        LocalDate effectiveDate = userService.getEffectiveDate(username);
+        if (transaction.getDate().isAfter(effectiveDate)) {
+            throw new RuntimeException("Không thể tạo giao dịch cho ngày trong tương lai! (Hôm nay là " + 
+                effectiveDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
+        }
         
         transaction.setUser(user);
         
         // Update wallet balance FIRST to catch balance exception
         if (transaction.getType() == TransactionType.TRANSFER) {
             if (transaction.getWallet() != null && transaction.getToWallet() != null) {
+                if (transaction.getWallet().getId().equals(transaction.getToWallet().getId())) {
+                    throw new RuntimeException("Ví gửi và ví nhận không được trùng nhau");
+                }
                 walletService.updateBalance(transaction.getWallet().getId(), transaction.getAmount(), false);
                 walletService.updateBalance(transaction.getToWallet().getId(), transaction.getAmount(), true);
             }
@@ -98,6 +109,14 @@ public class TransactionService implements ITransactionService {
     public void update(Transaction transaction, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Prevent future dates
+        LocalDate effectiveDate = userService.getEffectiveDate(username);
+        if (transaction.getDate().isAfter(effectiveDate)) {
+            throw new RuntimeException("Không thể sửa giao dịch thành ngày trong tương lai! (Hôm nay là " + 
+                effectiveDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
+        }
+
         Transaction old = findById(transaction.getId(), username);
         
         // 1. Reverse old balance
@@ -129,6 +148,9 @@ public class TransactionService implements ITransactionService {
         // 3. Apply new balance
         if (old.getType() == TransactionType.TRANSFER) {
             if (old.getWallet() != null && old.getToWallet() != null) {
+                if (old.getWallet().getId().equals(old.getToWallet().getId())) {
+                    throw new RuntimeException("Ví gửi và ví nhận không được trùng nhau");
+                }
                 walletService.updateBalance(old.getWallet().getId(), old.getAmount(), false); // Deduct from source
                 walletService.updateBalance(old.getToWallet().getId(), old.getAmount(), true);  // Add to destination
             }
@@ -352,38 +374,61 @@ public class TransactionService implements ITransactionService {
 
     @Override
     public List<Map<String, Object>> getDailySpendingReport(String username, int month, int year) {
-        User user = userRepository.findByUsername(username).orElseThrow();
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) return new java.util.ArrayList<>();
+        
         List<Wallet> wallets = walletRepository.findByUserUsername(username);
-        double totalDailyLimit = wallets.stream()
-                .filter(w -> w.getDailySpendingLimit() != null)
-                .mapToDouble(Wallet::getDailySpendingLimit)
-                .sum();
+        // Hạn mức giờ đây sẽ được tính cho từng ngày trong vòng lặp bên dưới
 
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate lastDayOfMonth = start.withDayOfMonth(start.lengthOfMonth());
         LocalDate today = userService.getEffectiveDate(username);
+        if (today == null) today = LocalDate.now();
         
-        LocalDate end;
-        if (start.isAfter(today)) {
-            return new java.util.ArrayList<>(); // Tháng trong tương lai
-        } else if (lastDayOfMonth.isBefore(today)) {
-            end = lastDayOfMonth; // Tháng đã qua
-        } else {
-            end = today; // Tháng hiện tại
+        LocalDate end = start.isAfter(today) ? null : (lastDayOfMonth.isBefore(today) ? lastDayOfMonth : today);
+        if (end == null) return new java.util.ArrayList<>();
+
+        // Lấy tất cả chi tiêu trong tháng bằng 1 câu query duy nhất
+        List<Object[]> monthlyExpenses = transactionRepository.getDailySpendingSum(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, start, end);
+        java.util.Map<LocalDate, Double> expenseMap = new java.util.HashMap<>();
+        for (Object[] row : monthlyExpenses) {
+            if (row != null && row.length >= 2 && row[0] != null) {
+                Object dateObj = row[0];
+                LocalDate d = null;
+                if (dateObj instanceof java.time.LocalDate) {
+                    d = (java.time.LocalDate) dateObj;
+                } else if (dateObj instanceof java.sql.Date) {
+                    d = ((java.sql.Date) dateObj).toLocalDate();
+                } else if (dateObj instanceof java.util.Date) {
+                    d = new java.sql.Date(((java.util.Date) dateObj).getTime()).toLocalDate();
+                }
+                
+                if (d != null) {
+                    Double val = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+                    expenseMap.put(d, val);
+                }
+            }
         }
 
         List<Map<String, Object>> report = new java.util.ArrayList<>();
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-            Double spent = transactionRepository.sumByUserAndTypeAndDate(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, date);
-            if (spent == null) spent = 0.0;
+            Double spent = expenseMap.getOrDefault(date, 0.0);
+
+            // Tính tổng hạn mức của tất cả ví tại ngày 'date'
+            double totalDailyLimitForDate = 0;
+            if (wallets != null) {
+                for (Wallet w : wallets) {
+                    totalDailyLimitForDate += budgetService.getDailyLimitForWallet(username, w.getId(), date);
+                }
+            }
 
             Map<String, Object> day = new java.util.HashMap<>();
             day.put("date", date);
             day.put("spent", spent);
-            day.put("limit", totalDailyLimit);
+            day.put("limit", totalDailyLimitForDate);
             
-            if (totalDailyLimit > 0) {
-                double percent = (spent / totalDailyLimit) * 100;
+            if (totalDailyLimitForDate > 0) {
+                double percent = (spent / totalDailyLimitForDate) * 100;
                 day.put("percent", percent);
                 day.put("status", percent > 100 ? "DANGER" : (percent > 80 ? "WARNING" : "SUCCESS"));
             } else {

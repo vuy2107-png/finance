@@ -145,7 +145,10 @@
             font-weight: 700;
         }
 
-        .badge-premium { background: #e0e7ff; color: #4338ca; }
+        .badge-starter { background: #fffbeb; color: #d97706; }
+        .badge-pro { background: #fef2f2; color: #dc2626; }
+        .badge-elite { background: #eef2ff; color: #4f46e5; }
+        .badge-trial { background: #ecfdf5; color: #10b981; }
         .badge-free { background: #f1f5f9; color: #475569; }
         .badge-active { background: #dcfce7; color: #15803d; }
         .badge-blocked { background: #fee2e2; color: #b91c1c; }
@@ -176,75 +179,92 @@
                 </div>
             </div>
 
+            <!-- Messages -->
+            <div th:if="${message}" class="alert alert-success" style="background: #dcfce7; color: #15803d; padding: 1rem 1.5rem; border-radius: 16px; margin-bottom: 2rem; border: none; font-weight: 600; display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem;">
+                <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
+            </div>
+
             <!-- Operational Stats -->
             <h3 style="font-weight: 800; color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem;">
-                <i class="fas fa-users-cog"></i> Chỉ số vận hành
+                <i class="fas fa-users-cog"></i> Sức khỏe hệ thống
             </h3>
             <div class="stat-grid">
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #eef2ff; color: #6366f1;"><i class="fas fa-users"></i></div>
-                    <div class="stat-label">Tổng người dùng</div>
-                    <div class="stat-value" th:text="${totalUsers}">0</div>
+                <!-- Online Users -->
+                <div class="stat-card" style="border-top: 4px solid #10b981;">
+                    <div class="stat-icon" style="background: #ecfdf5; color: #10b981;"><i class="fas fa-signal"></i></div>
+                    <div class="stat-label">Đang hoạt động (Online)</div>
+                    <div class="stat-value" th:text="${onlineUsers}">0</div>
                     <div style="font-size: 0.8rem; color: #10b981; font-weight: 600;">
-                        <i class="fas fa-user-plus"></i> +<span th:text="${newUsersToday}">0</span> mới hôm nay
+                        Người dùng đang trong phiên làm việc
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #ecfdf5; color: #10b981;"><i class="fas fa-user-check"></i></div>
-                    <div class="stat-label">Đang hoạt động</div>
-                    <div class="stat-value" th:text="${activeUsers}">0</div>
+                <!-- Offline Users -->
+                <div class="stat-card" style="border-top: 4px solid #64748b;">
+                    <div class="stat-icon" style="background: #f1f5f9; color: #64748b;"><i class="fas fa-moon"></i></div>
+                    <div class="stat-label">Ngoại tuyến (Offline)</div>
+                    <div class="stat-value" th:text="${offlineUsers}">0</div>
                     <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">
-                        Tỉ lệ kích hoạt: <span th:text="${totalUsers > 0 ? (activeUsers * 100 / totalUsers) : 0} + '%'">0%</span>
+                        Người dùng đã đăng xuất
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;"><i class="fas fa-crown"></i></div>
-                    <div class="stat-label">Thành viên Premium</div>
-                    <div class="stat-value" th:text="${premiumUsers}">0</div>
-                    <div style="display: flex; gap: 0.75rem; margin-top: 0.25rem;">
-                        <span style="font-size: 0.7rem; color: #64748b; font-weight: 700;">STA: <span th:text="${starterUsers}" style="color: #f59e0b;">0</span></span>
-                        <span style="font-size: 0.7rem; color: #64748b; font-weight: 700;">PRO: <span th:text="${proUsers}" style="color: #ef4444;">0</span></span>
-                        <span style="font-size: 0.7rem; color: #64748b; font-weight: 700;">ELI: <span th:text="${eliteUsers}" style="color: #6366f1;">0</span></span>
+                <!-- Blocked Users -->
+                <div class="stat-card" style="border-top: 4px solid #ef4444;">
+                    <div class="stat-icon" style="background: #fef2f2; color: #ef4444;"><i class="fas fa-user-slash"></i></div>
+                    <div class="stat-label">Tài khoản bị chặn</div>
+                    <div class="stat-value" th:text="${blockedUsers}">0</div>
+                    <div style="font-size: 0.8rem; color: #ef4444; font-weight: 600;">
+                        Tài khoản vi phạm hoặc bị khóa
                     </div>
                 </div>
             </div>
 
             <!-- Financial Stats -->
             <h3 style="font-weight: 800; color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1.5rem; margin-top: 1rem;">
-                <i class="fas fa-chart-line"></i> Chỉ số Tài chính (Kinh tế thực)
+                <i class="fas fa-vault"></i> Tài chính & Kinh tế
             </h3>
             <div class="stat-grid">
-                <div class="stat-card" style="border-left: 4px solid #6366f1;">
-                    <div class="stat-icon" style="background: #fff1f2; color: #f43f5e;"><i class="fas fa-hand-holding-usd"></i></div>
-                    <div class="stat-label">Doanh thu Premium</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
-                    <div style="font-size: 0.8rem; color: #6366f1; font-weight: 700;">Tiền thực thu từ khách</div>
-                </div>
-
-                <div class="stat-card" style="border-left: 4px solid #10b981;">
+                <div class="stat-card">
                     <div class="stat-icon" style="background: #f0fdf4; color: #10b981;"><i class="fas fa-file-invoice-dollar"></i></div>
                     <div class="stat-label">Tổng dòng tiền nạp</div>
                     <div class="stat-value" th:text="${#numbers.formatDecimal(totalDeposits, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
-                    <div style="font-size: 0.8rem; color: #10b981; font-weight: 700;">Tổng tiền khách nạp vào</div>
+                    <div style="font-size: 0.8rem; color: #10b981; font-weight: 700;">Tiền nạp qua hệ thống</div>
                 </div>
 
-                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
-                    <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;"><i class="fas fa-vault"></i></div>
-                    <div class="stat-label">Số dư khách thực giữ</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(actualAssets, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
-                    <div style="font-size: 0.8rem; color: #f59e0b; font-weight: 700;">Dòng tiền khách còn lại</div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fff1f2; color: #f43f5e;"><i class="fas fa-crown"></i></div>
+                    <div class="stat-label">Doanh thu Premium</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
+                    <div style="font-size: 0.8rem; color: #f43f5e; font-weight: 700;">Tiền thực thu từ bán gói</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;"><i class="fas fa-wallet"></i></div>
+                    <div class="stat-label">Tổng số dư của khách</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalUserBalances, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
+                    <div style="font-size: 0.8rem; color: #f59e0b; font-weight: 700;">Tổng tiền khách đang sở hữu</div>
                 </div>
             </div>
 
-            <!-- Chart -->
-            <div class="chart-container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <h3 style="margin: 0; font-weight: 800; color: var(--admin-dark);">Tăng trưởng Người dùng (7 ngày gần nhất)</h3>
+            <!-- Charts -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+                <div class="chart-container" style="margin-bottom: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; font-weight: 800; color: var(--admin-dark);">Tăng trưởng Người dùng (7 ngày)</h3>
+                    </div>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="growthChart"></canvas>
+                    </div>
                 </div>
-                <div style="height: 350px; position: relative;">
-                    <canvas id="growthChart"></canvas>
+
+                <div class="chart-container" style="margin-bottom: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 style="margin: 0; font-weight: 800; color: var(--admin-dark);">Phân khúc</h3>
+                    </div>
+                    <div style="height: 300px; position: relative; display: flex; align-items: center; justify-content: center;">
+                        <canvas id="segmentChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -280,8 +300,9 @@
                                 </td>
                                 <td th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                                 <td>
-                                    <span th:if="${user.premium}" class="badge badge-premium" 
-                                          th:text="${user.premiumPlan == 'weekly' ? 'STARTER' : (user.premiumPlan == 'monthly' ? 'PRO' : 'ELITE')}">PREMIUM</span>
+                                    <span th:if="${user.premium}" 
+                                          th:class="'badge ' + ${user.premiumPlan == 'weekly' ? 'badge-starter' : (user.premiumPlan == 'monthly' ? 'badge-pro' : (user.premiumPlan == 'yearly' ? 'badge-elite' : 'badge-trial'))}" 
+                                          th:text="${user.premiumPlan == 'weekly' ? 'STARTER' : (user.premiumPlan == 'monthly' ? 'PRO' : (user.premiumPlan == 'yearly' ? 'ELITE' : 'DÙNG THỬ'))}">PREMIUM</span>
                                     <span th:unless="${user.premium}" class="badge badge-free">FREE</span>
                                 </td>
                                 <td>
@@ -300,22 +321,22 @@
     </div>
 
     <script th:inline="javascript">
-        // Dữ liệu tăng trưởng từ Model
+        // 1. Dữ liệu tăng trưởng
         const growthData = /*[[${growthData}]]*/ {};
-        const labels = Object.keys(growthData).map(date => {
+        const growthLabels = Object.keys(growthData).map(date => {
             const d = new Date(date);
             return d.getDate() + '/' + (d.getMonth() + 1);
         });
-        const data = Object.values(growthData);
+        const growthValues = Object.values(growthData);
 
-        const ctx = document.getElementById('growthChart').getContext('2d');
-        new Chart(ctx, {
+        const growthCtx = document.getElementById('growthChart').getContext('2d');
+        new Chart(growthCtx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: growthLabels,
                 datasets: [{
                     label: 'Người dùng mới',
-                    data: data,
+                    data: growthValues,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',
                     borderWidth: 4,
@@ -346,18 +367,41 @@
                     y: {
                         beginAtZero: true,
                         grid: { borderDash: [5, 5], color: '#f1f5f9', drawBorder: false },
-                        ticks: { 
-                            color: '#64748b',
-                            font: { family: 'Outfit', weight: '600', size: 11 },
-                            padding: 10
-                        }
+                        ticks: { color: '#64748b', font: { family: 'Outfit', weight: '600', size: 11 }, padding: 10 }
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { 
-                            color: '#64748b',
-                            font: { family: 'Outfit', weight: '600', size: 11 },
-                            padding: 10
+                        ticks: { color: '#64748b', font: { family: 'Outfit', weight: '600', size: 11 }, padding: 10 }
+                    }
+                }
+            }
+        });
+
+        // 2. Dữ liệu Phân khúc
+        const segData = /*[[${segmentationData}]]*/ {};
+        const segCtx = document.getElementById('segmentChart').getContext('2d');
+        new Chart(segCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(segData),
+                datasets: [{
+                    data: Object.values(segData),
+                    backgroundColor: ['#94a3b8', '#f59e0b', '#ef4444', '#6366f1'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: 'Outfit', weight: '700', size: 12 },
+                            padding: 20,
+                            usePointStyle: true
                         }
                     }
                 }

@@ -31,6 +31,7 @@ function openAddModal() {
     document.getElementById('catDesc').value = '';
     document.getElementById('catColor').value = '#3b82f6';
     document.getElementById('catIcon').value = 'fas fa-tag';
+    document.getElementById('catType').value = 'EXPENSE';
     document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
 
     // Hiển thị modal

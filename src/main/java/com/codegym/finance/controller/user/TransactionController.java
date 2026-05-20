@@ -6,6 +6,7 @@ import com.codegym.finance.entity.transaction.Transaction;
 import com.codegym.finance.entity.transaction.TransactionType;
 import com.codegym.finance.entity.user.User;
 import com.codegym.finance.entity.wallet.Wallet;
+import com.codegym.finance.service.budget.BudgetAlertDTO;
 import com.codegym.finance.service.budget.IBudgetService;
 import com.codegym.finance.service.category.ICategoryService;
 import com.codegym.finance.service.user.IUserService;
@@ -66,10 +67,13 @@ public class TransactionController {
             model.addAttribute("user", currentUser);
             model.addAttribute("showWelcomeTour", currentUser.getHasSeenTour() != null && !currentUser.getHasSeenTour());
 
-            // Morning Report Logic
+            // Morning Report Logic: Hiện báo cáo nếu chưa xem trong ngày hôm nay VÀ tài khoản đã được tạo trước ngày hôm nay
             LocalDate now = userService.getEffectiveDate(username);
+            boolean isFirstLoginToday = currentUser.getLastReportDate() == null || currentUser.getLastReportDate().isBefore(now);
+            boolean hasHistoryBeforeToday = currentUser.getCreatedAt() != null && currentUser.getCreatedAt().toLocalDate().isBefore(now);
+            
             boolean forceReport = "true".equals(testReport) || date != null;
-            if (forceReport || currentUser.getLastReportDate() == null || currentUser.getLastReportDate().isBefore(now)) {
+            if (forceReport || (isFirstLoginToday && hasHistoryBeforeToday)) {
                 LocalDate reportDate = (date != null) ? date : now.minusDays(1);
                 Map<String, Object> yesterdayReport = new HashMap<>();
                 yesterdayReport.put("date", reportDate);
@@ -77,7 +81,27 @@ public class TransactionController {
                 List<Map<String, Object>> overspentCategories = new ArrayList<>();
                 List<Map<String, Object>> goodCategories = new ArrayList<>();
                 
-                // Get all budgets for the report date
+                // 1. Kiểm tra hạn mức ngày của Ví
+                double totalDaySpent = 0;
+                double totalDayLimit = 0;
+                boolean isDailyOverspent = false;
+                List<Wallet> userWallets = walletService.findByUsername(username);
+                for (Wallet w : userWallets) {
+                    Double spentInWallet = transactionRepository.sumByUserAndWalletAndTypeAndDate(currentUser, w, TransactionType.EXPENSE, reportDate);
+                    if (spentInWallet == null) spentInWallet = 0.0;
+                    totalDaySpent += spentInWallet;
+                    Double histLimit = budgetService.getDailyLimitForWallet(username, w.getId(), reportDate);
+                    if (histLimit != null && histLimit > 0) {
+                        totalDayLimit += histLimit;
+                        if (spentInWallet > histLimit) {
+                            isDailyOverspent = true;
+                        }
+                    }
+                }
+                yesterdayReport.put("totalSpent", totalDaySpent);
+                yesterdayReport.put("isDailyOverspent", isDailyOverspent);
+
+                // 2. Kiểm tra ngân sách danh mục
                 List<Budget> yesterdayBudgets = budgetService.getBudgetsByMonth(username, reportDate.getMonthValue(), reportDate.getYear(), null);
                 for (Budget b : yesterdayBudgets) {
                     if (b.getCategory() == null || b.getCategory().getType() != TransactionType.EXPENSE) continue;
@@ -154,13 +178,14 @@ public class TransactionController {
                 walletData.put("walletName", w.getName());
                 walletData.put("id", w.getId());
                 
-                // 1. Daily Limit for this wallet
-                if (w.getDailySpendingLimit() != null && w.getDailySpendingLimit() > 0) {
+                // 1. Daily Limit for this wallet (Use historical/effective limit for the simulated date)
+                Double effectiveLimit = budgetService.getDailyLimitForWallet(username, w.getId(), now);
+                if (effectiveLimit != null && effectiveLimit > 0) {
                     double todayWalletExp = transactionService.getTodayExpenseForWallet(username, w.getId());
                     walletData.put("spent", todayWalletExp);
-                    walletData.put("limit", w.getDailySpendingLimit());
-                    double percent = (todayWalletExp / w.getDailySpendingLimit()) * 100;
-                    walletData.put("percent", Math.min(percent, 100));
+                    walletData.put("limit", effectiveLimit);
+                    double percent = (todayWalletExp / effectiveLimit) * 100;
+                    walletData.put("percent", percent);
                     walletData.put("status", percent > 100 ? "DANGER" : (percent > 80 ? "WARNING" : "SUCCESS"));
                 }
                 
@@ -171,7 +196,7 @@ public class TransactionController {
                     if (b.getCategory() == null || b.getCategory().getType() != TransactionType.EXPENSE) continue;
                     Map<String, Object> cb = new HashMap<>();
                     cb.put("categoryName", b.getCategory().getName());
-                    IBudgetService.BudgetAlertDTO alert = budgetService.checkDailyCategoryBudgetAlert(
+                    BudgetAlertDTO alert = budgetService.checkDailyCategoryBudgetAlert(
                             username, b.getCategory().getId(), now.getMonthValue(), now.getYear(), w.getId());
                     cb.put("spentAmount", alert.getSpentAmount());
                     cb.put("limitAmount", b.getAmount());
@@ -195,7 +220,7 @@ public class TransactionController {
                 
                 Map<String, Object> status = new HashMap<>();
                 status.put("categoryName", b.getCategory().getName());
-                IBudgetService.BudgetAlertDTO alert = budgetService.checkDailyCategoryBudgetAlert(
+                BudgetAlertDTO alert = budgetService.checkDailyCategoryBudgetAlert(
                         username, b.getCategory().getId(), now.getMonthValue(), now.getYear(), null);
                 status.put("spentAmount", alert.getSpentAmount());
                 status.put("limitAmount", b.getAmount());
@@ -304,13 +329,11 @@ public class TransactionController {
         }
         try {
             // Kiểm tra khóa tháng (không được thêm tháng trước hoặc sau)
-            LocalDate today = LocalDate.now(); 
-            // Lưu ý: Ở đây dùng ngày thực của server để bảo mật, hoặc nếu bạn muốn test theo "ngày giả" thì dùng logic tương ứng.
-            // Để đồng bộ với việc bạn đang test "ngày giả", tôi sẽ dùng logic kiểm tra month/year hiện tại.
-            
-            if (transaction.getDate().getMonthValue() != today.getMonthValue() || 
-                transaction.getDate().getYear() != today.getYear()) {
-                throw new Exception("Chỉ được phép thêm giao dịch trong tháng hiện tại (" + today.getMonthValue() + "/" + today.getYear() + ")");
+            // Kiểm tra ngày tương lai (Sử dụng ngày giả lập nếu có)
+            LocalDate today = userService.getEffectiveDate(auth.getName());
+            if (transaction.getDate().isAfter(today)) {
+                throw new Exception("Không thể thêm giao dịch cho ngày trong tương lai! (Hôm nay là " + 
+                    today.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
             }
 
             if (categoryName != null && !categoryName.trim().isEmpty()) {
@@ -320,7 +343,7 @@ public class TransactionController {
             
             if (transaction.getCategory() != null) {
                 Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
-                IBudgetService.BudgetAlertDTO alert = budgetService.checkBudgetAlert(
+                BudgetAlertDTO alert = budgetService.checkBudgetAlert(
                         auth.getName(), 
                         transaction.getCategory().getId(), 
                         transaction.getDate().getMonthValue(), 
@@ -329,7 +352,7 @@ public class TransactionController {
                 );
                 
                 // Also check daily limit
-                IBudgetService.BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
+                BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
                 
                 if (dailyAlert.isAlert()) {
                     redirectAttributes.addFlashAttribute("budgetAlert", dailyAlert);
@@ -390,11 +413,10 @@ public class TransactionController {
             return "redirect:/user/transactions";
         }
 
-        // Kiểm tra khóa tháng
-        java.time.LocalDate today = java.time.LocalDate.now();
-        if (existing.getDate().getMonthValue() != today.getMonthValue() || 
-            existing.getDate().getYear() != today.getYear()) {
-            redirectAttributes.addFlashAttribute("error", "Không thể sửa giao dịch từ các tháng trước.");
+        // Kiểm tra ngày tương lai
+        LocalDate today = userService.getEffectiveDate(auth.getName());
+        if (transaction.getDate().isAfter(today)) {
+            redirectAttributes.addFlashAttribute("error", "Không thể sửa giao dịch thành ngày trong tương lai!");
             return "redirect:/user/transactions";
         }
 
@@ -409,7 +431,7 @@ public class TransactionController {
             // Check budget for update
             if (transaction.getCategory() != null) {
                 Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
-                IBudgetService.BudgetAlertDTO alert = budgetService.checkBudgetAlert(
+                BudgetAlertDTO alert = budgetService.checkBudgetAlert(
                         auth.getName(), 
                         transaction.getCategory().getId(), 
                         transaction.getDate().getMonthValue(), 
@@ -418,7 +440,7 @@ public class TransactionController {
                 );
                 
                 // Also check daily limit
-                IBudgetService.BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
+                BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
                 
                 if (dailyAlert.isAlert()) {
                     redirectAttributes.addFlashAttribute("budgetAlert", dailyAlert);
@@ -481,10 +503,9 @@ public class TransactionController {
             return "redirect:/user/transactions/error-ajax";
         }
 
-        // Kiểm tra khóa tháng
-        java.time.LocalDate today = java.time.LocalDate.now();
-        if (existing.getDate().getMonthValue() != today.getMonthValue() || 
-            existing.getDate().getYear() != today.getYear()) {
+        // Kiểm tra ngày tương lai
+        LocalDate today = userService.getEffectiveDate(auth.getName());
+        if (transaction.getDate().isAfter(today)) {
             return "redirect:/user/transactions/error-ajax";
         }
 

@@ -41,6 +41,11 @@ public class AuthController {
             user.setEmail(user.getEmail().trim().toLowerCase());
         }
 
+        // 0. Kiểm tra độ dài tối thiểu của username sau khi trim
+        if (user.getUsername() != null && user.getUsername().length() < 6) {
+            result.rejectValue("username", "error.user", "Tên đăng nhập không được ít hơn 6 ký tự");
+        }
+
         // 1. Check trùng username
         if (userService.existsByUsername(user.getUsername())) {
             result.rejectValue("username", "error.user", "Tên đăng nhập này đã được sử dụng");
@@ -54,6 +59,9 @@ public class AuthController {
         }
 
         // 3. Check password confirm
+        if (user.getPassword() != null && user.getPassword().length() < 6) {
+            result.rejectValue("password", "error.user", "Mật khẩu không được ít hơn 6 ký tự");
+        }
         if (user.getPassword() != null && !user.getPassword().equals(user.getConfirmPassword())) {
             result.rejectValue("confirmPassword", "error.user", "Mật khẩu xác nhận không khớp");
         }

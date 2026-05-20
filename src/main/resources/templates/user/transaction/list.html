@@ -131,7 +131,7 @@
                                                               class="badge" style="background: #d1fae5; color: #059669; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">Vốn quản lý</span>
                                                         <span th:if="${t.description != null and !t.description.contains('Nạp tiền vào quỹ') and !t.description.contains('Khởi tạo')}"
                                                               th:class="${'badge ' + (t.type.name() == 'INCOME' ? 'badge-income' : (t.type.name() == 'EXPENSE' ? 'badge-expense' : 'badge-transfer'))}"
-                                                              th:text="${t.type.name() == 'INCOME' ? 'Thu nhập' : (t.type.name() == 'EXPENSE' ? 'Chi tiêu' : 'Chuyển tiền')}"></span>
+                                                              th:text="${t.type.name() == 'INCOME' ? 'Dòng tiền vào' : (t.type.name() == 'EXPENSE' ? 'Chi tiêu' : 'Chuyển tiền')}"></span>
                                                         
                                                         <button type="button" th:onclick="'editQuickTransaction(' + ${t.id} + ')'" class="btn btn-secondary" style="padding: 0.25rem 0.5rem;"><i class="fas fa-edit"></i></button>
                                                         <form th:action="@{/user/transactions/delete}" method="post" 

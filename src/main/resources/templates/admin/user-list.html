@@ -3,139 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Người dùng | Finance Admin</title>
+    <title>Quản lý Người dùng | Finance Pro</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --admin-primary: #3b82f6;
+            --admin-primary: #6366f1;
             --admin-dark: #0f172a;
-            --admin-bg: #f1f5f9;
+            --admin-bg: #f8fafc;
         }
-        body { background-color: var(--admin-bg); color: var(--admin-dark); font-family: 'Inter', sans-serif; }
-        .admin-sidebar { width: 260px; background: var(--admin-dark); height: 100vh; position: fixed; left: 0; top: 0; color: white; padding: 2rem 1.5rem; }
-        .admin-main { margin-left: 260px; padding: 2rem; }
-        .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; color: #94a3b8; text-decoration: none; border-radius: 12px; transition: all 0.3s; margin-bottom: 0.5rem; }
-        .sidebar-link:hover, .sidebar-link.active { background: rgba(255,255,255,0.1); color: white; }
-        .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
-        .table { width: 100%; border-collapse: collapse; }
-        .table th { background: #f8fafc; padding: 1rem 1.5rem; font-size: 0.75rem; color: #64748b; text-transform: uppercase; text-align: left; }
-        .table td { padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; }
-        .badge { padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-        .badge-premium { background: #fef3c7; color: #92400e; }
-        .badge-free { background: #f1f5f9; color: #64748b; }
-        .badge-active { background: #ecfdf5; color: #059669; }
-        .badge-blocked { background: #fef2f2; color: #dc2626; }
-        .alert { padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; }
-        .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--admin-bg);
+            color: var(--admin-dark);
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        .admin-layout {
+            display: flex;
+            width: 100%;
+            position: relative;
+        }
+
+        .admin-main {
+            flex: 1;
+            padding: 2.5rem;
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
+        }
+
+        /* Header Styles */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+
+        /* Table Card */
+        .admin-table-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table th {
+            background: #f8fafc;
+            padding: 1.25rem 1.5rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .admin-table tr {
+            transition: all 0.2s;
+        }
+
+        .admin-table tr:hover {
+            background: #fcfdfe;
+        }
+
+        .admin-table td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .badge-starter { background: #fffbeb; color: #d97706; }
+        .badge-pro { background: #fef2f2; color: #dc2626; }
+        .badge-elite { background: #eef2ff; color: #4f46e5; }
+        .badge-trial { background: #ecfdf5; color: #10b981; }
+        .badge-free { background: #f1f5f9; color: #475569; }
+        
+        .badge-active { background: #dcfce7; color: #15803d; }
+        .badge-blocked { background: #fee2e2; color: #b91c1c; }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        /* Actions */
+        .action-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn-upgrade { background: #eef2ff; color: #6366f1; }
+        .btn-upgrade:hover { background: #6366f1; color: white; }
+        
+        .btn-lock { background: #fff1f2; color: #f43f5e; }
+        .btn-lock:hover { background: #f43f5e; color: white; }
+        
+        .btn-unlock { background: #ecfdf5; color: #10b981; }
+        .btn-unlock:hover { background: #10b981; color: white; }
+
+        @media (max-width: 1024px) {
+            .admin-main { margin-left: 0; width: 100%; }
+        }
     </style>
 </head>
 <body>
 
-    <aside class="admin-sidebar">
-        <div style="font-size: 1.5rem; font-weight: 800; margin-bottom: 3rem; display: flex; align-items: center; gap: 0.75rem;">
-            <div style="width: 35px; height: 35px; background: var(--admin-primary); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-shield-alt" style="font-size: 1.2rem;"></i>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar('users')}"></div>
+
+        <main class="admin-main">
+            <header class="page-header">
+                <div>
+                    <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0; letter-spacing: -1px;">Quản lý Người dùng</h1>
+                    <p style="color: #64748b; margin-top: 0.5rem; font-size: 1.1rem;">Kiểm soát và phân quyền thành viên hệ thống.</p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div style="background: white; padding: 0.5rem 1rem; border-radius: 14px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-search" style="color: #94a3b8;"></i>
+                        <input type="text" placeholder="Tìm kiếm..." style="border: none; outline: none; font-family: 'Outfit'; font-weight: 500; width: 200px;">
+                    </div>
+                </div>
+            </header>
+
+            <div th:if="${message}" class="alert alert-success" style="background: #dcfce7; color: #15803d; padding: 1rem 1.5rem; border-radius: 16px; margin-bottom: 2rem; border: none; font-weight: 600; display: flex; align-items: center; gap: 0.75rem;">
+                <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
             </div>
-            <span>ADMIN PRO</span>
-        </div>
-        <nav>
-            <a href="/admin/dashboard" class="sidebar-link">
-                <i class="fas fa-th-large"></i> Dashboard
-            </a>
-            <a href="/admin/users" class="sidebar-link active">
-                <i class="fas fa-users"></i> Quản lý User
-            </a>
-            <a href="/admin/icons" class="sidebar-link">
-                <i class="fas fa-icons"></i> Cửa hàng Icon
-            </a>
-            <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                <a href="/user/dashboard" class="sidebar-link">
-                    <i class="fas fa-user-circle"></i> Chế độ User
-                </a>
-                <form th:action="@{/logout}" method="post">
-                    <button type="submit" class="sidebar-link" style="background: none; border: none; width: 100%; cursor: pointer;">
-                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                    </button>
-                </form>
+
+            <div class="admin-table-card">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Người dùng</th>
+                            <th>Số dư tài khoản</th>
+                            <th>Gói Premium</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tham gia</th>
+                            <th style="text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="u : ${users}">
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div class="user-avatar" th:text="${#strings.substring(u.username, 0, 1).toUpperCase()}">U</div>
+                                    <div>
+                                        <div style="font-weight: 700; color: #1e293b;" th:text="${u.username}">username</div>
+                                        <div style="font-size: 0.75rem; color: #64748b;" th:text="${u.email}">email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 700; color: #1e293b;" th:text="${#numbers.formatDecimal(u.balance ?: 0, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
+                                <div style="font-size: 0.7rem; color: #94a3b8;" th:text="${u.role}">ROLE</div>
+                            </td>
+                            <td>
+                                <span th:if="${u.premium ?: false}" 
+                                      th:class="'badge ' + ${u.premiumPlan == 'weekly' ? 'badge-starter' : (u.premiumPlan == 'monthly' ? 'badge-pro' : (u.premiumPlan == 'yearly' ? 'badge-elite' : 'badge-trial'))}">
+                                    <i class="fas fa-crown"></i>
+                                    <span th:text="${u.premiumPlan == 'weekly' ? 'STARTER' : (u.premiumPlan == 'monthly' ? 'PRO' : (u.premiumPlan == 'yearly' ? 'ELITE' : 'DÙNG THỬ'))}">PREMIUM</span>
+                                </span>
+                                <span th:unless="${u.premium ?: false}" class="badge badge-free">MIỄN PHÍ</span>
+                            </td>
+                            <td>
+                                <div th:if="${u.active ?: true}">
+                                    <span th:if="${u.isOnline ?: false}" class="badge badge-active" style="background: #ecfdf5; color: #10b981;">
+                                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i> ĐANG ONLINE
+                                    </span>
+                                    <span th:unless="${u.isOnline ?: false}" class="badge" style="background: #f1f5f9; color: #64748b;">
+                                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i> NGOẠI TUYẾN
+                                    </span>
+                                </div>
+                                <span th:unless="${u.active ?: true}" class="badge badge-blocked">
+                                    <i class="fas fa-user-slash" style="font-size: 0.7rem;"></i> ĐÃ KHÓA
+                                </span>
+                            </td>
+                            <td style="font-weight: 500; color: #64748b;" th:text="${#temporals.format(u.createdAt, 'dd/MM/yyyy')}"></td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 0.6rem; justify-content: center;">
+                                    <!-- Toggle Premium -->
+                                    <form th:action="@{/admin/users/toggle-premium}" method="post">
+                                        <input type="hidden" name="id" th:value="${u.id}">
+                                        <button type="submit" class="action-btn btn-upgrade" th:title="${(u.premium ?: false) ? 'Hạ cấp gói' : 'Tặng Premium'}">
+                                            <i th:class="${(u.premium ?: false) ? 'fas fa-arrow-down' : 'fas fa-crown'}"></i>
+                                        </button>
+                                    </form>
+                                    <!-- Toggle Status -->
+                                    <form th:action="@{/admin/users/toggle-status}" method="post">
+                                        <input type="hidden" name="id" th:value="${u.id}">
+                                        <button type="submit" th:class="'action-btn ' + (${u.active ?: true} ? 'btn-lock' : 'btn-unlock')" 
+                                                th:title="${(u.active ?: true) ? 'Khóa tài khoản' : 'Mở khóa'}">
+                                            <i th:class="${(u.active ?: true) ? 'fas fa-user-slash' : 'fas fa-user-check'}"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </nav>
-    </aside>
-
-    <main class="admin-main">
-        <div style="margin-bottom: 2rem;">
-            <h1 style="font-size: 1.75rem; font-weight: 800;">Quản lý Người dùng</h1>
-            <p style="color: #64748b;">Danh sách tất cả tài khoản trên hệ thống.</p>
-        </div>
-
-        <div th:if="${message}" class="alert alert-success">
-            <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
-        </div>
-
-        <div class="card">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Người dùng</th>
-                        <th>Vai trò</th>
-                        <th>Gói dịch vụ</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày tham gia</th>
-                        <th style="text-align: center;">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="u : ${users}">
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <div style="width: 36px; height: 36px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;">
-                                    <span th:text="${#strings.substring(u.username, 0, 1).toUpperCase()}">U</span>
-                                </div>
-                                <div>
-                                    <div style="font-weight: 600;" th:text="${u.username}">username</div>
-                                    <div style="font-size: 0.75rem; color: #64748b;" th:text="${u.email}">email</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <span style="font-size: 0.875rem; font-weight: 500;" th:text="${u.role}">ROLE</span>
-                        </td>
-                        <td>
-                            <span th:if="${u.premium}" class="badge badge-premium"><i class="fas fa-crown"></i> Premium</span>
-                            <span th:unless="${u.premium}" class="badge badge-free">Free Plan</span>
-                        </td>
-                        <td>
-                            <span th:if="${u.active}" class="badge badge-active"><i class="fas fa-check"></i> Hoạt động</span>
-                            <span th:unless="${u.active}" class="badge badge-blocked"><i class="fas fa-lock"></i> Đã khóa</span>
-                        </td>
-                        <td style="font-size: 0.875rem; color: #475569;" th:text="${#temporals.format(u.createdAt, 'dd/MM/yyyy')}"></td>
-                        <td style="text-align: center;">
-                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
-                                <!-- Toggle Premium -->
-                                <form th:action="@{/admin/users/toggle-premium}" method="post">
-                                    <input type="hidden" name="id" th:value="${u.id}">
-                                    <button type="submit" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.75rem;" 
-                                            th:title="${u.premium ? 'Hạ cấp xuống Free' : 'Nâng cấp Premium'}">
-                                        <i th:class="${u.premium ? 'fas fa-arrow-down' : 'fas fa-crown'}"></i>
-                                    </button>
-                                </form>
-                                <!-- Toggle Status -->
-                                <form th:action="@{/admin/users/toggle-status}" method="post">
-                                    <input type="hidden" name="id" th:value="${u.id}">
-                                    <button type="submit" th:class="${u.active ? 'btn btn-danger' : 'btn btn-success'}" 
-                                            style="padding: 0.4rem 0.6rem; font-size: 0.75rem;"
-                                            th:title="${u.active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}">
-                                        <i th:class="${u.active ? 'fas fa-user-slash' : 'fas fa-user-check'}"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
+        </main>
+    </div>
 
 </body>
 </html>

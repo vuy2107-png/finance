@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     long countByPremium(Boolean premium);
     long countByActive(Boolean active);
+    long countByIsOnlineAndActive(Boolean isOnline, Boolean active);
     long countByCreatedAtAfter(java.time.LocalDateTime date);
     long countByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end);
     long countByPremiumPlan(String plan);

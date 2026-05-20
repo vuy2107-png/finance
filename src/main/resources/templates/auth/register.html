@@ -42,7 +42,7 @@
                 <form th:action="@{/register}" th:object="${user}" method="post">
                     <div class="form-group">
                         <label for="username">Tên đăng nhập <span style="color: red">*</span></label>
-                        <input type="text" id="username" th:field="*{username}" class="form-control" placeholder="Tên đăng nhập" required>
+                        <input type="text" id="username" th:field="*{username}" class="form-control" placeholder="Tên đăng nhập (tối thiểu 6 ký tự)" minlength="6" required>
                         <div th:if="${#fields.hasErrors('username')}" th:errors="*{username}" style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;"></div>
                     </div>
 
@@ -54,7 +54,7 @@
 
                     <div class="form-group">
                         <label for="password">Mật khẩu <span style="color: red">*</span></label>
-                        <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="Ít nhất 6 ký tự" required>
+                        <input type="password" id="password" th:field="*{password}" class="form-control" placeholder="Ít nhất 6 ký tự" minlength="6" required>
                         <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" style="color: var(--danger); font-size: 0.75rem; margin-top: 0.25rem;"></div>
                     </div>
 

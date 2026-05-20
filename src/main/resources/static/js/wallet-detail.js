@@ -61,25 +61,73 @@ let activeWalletId = null;
 
 function openBudgetModal(walletId, walletName, dailyLimit) {
     activeWalletId = walletId;
-    document.getElementById('targetWalletName').textContent = walletName;
-    document.getElementById('dailySpendingLimit').value = dailyLimit || 0;
-    document.getElementById('modalMonthYear').textContent = `${window.currentMonth}/${window.currentYear}`;
     
-    // Clear and populate category grid
+    const selector = document.getElementById('walletSelectorContainer');
+    const nameSection = document.getElementById('modalWalletName');
+    
+    if (walletId) {
+        // Mở cho ví cụ thể
+        selector.style.display = 'none';
+        nameSection.style.display = 'block';
+        document.getElementById('targetWalletName').textContent = walletName;
+        
+        // Luôn fetch giá trị mới nhất từ server để đảm bảo chính xác
+        const today = new Date().toISOString().split('T')[0];
+        fetch(`/user/wallets/${walletId}/effective-limit?date=${today}`)
+            .then(res => res.json())
+            .then(limit => {
+                document.getElementById('dailySpendingLimit').value = limit || 0;
+            });
+
+        loadBudgetModalData(walletId);
+    } else {
+        // Mở tổng quát (Header)
+        selector.style.display = 'block';
+        nameSection.style.display = 'none';
+        document.getElementById('dailySpendingLimit').value = 0;
+        document.getElementById('categoryBudgetGrid').innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Vui lòng chọn ví để tiếp tục.</div>';
+    }
+    
+    document.getElementById('modalMonthYear').textContent = `${window.currentMonth}/${window.currentYear}`;
+    document.getElementById('budgetModal').classList.add('active');
+    
+    // Update onchange for daily limit
+    document.getElementById('dailySpendingLimit').onchange = () => {
+        if (activeWalletId) saveDailyLimit(activeWalletId);
+        else showToast('Vui lòng chọn ví trước! ⚠️', 'WARNING');
+    };
+}
+
+function changeModalWallet(walletId) {
+    if (!walletId) {
+        activeWalletId = null;
+        document.getElementById('dailySpendingLimit').value = 0;
+        document.getElementById('categoryBudgetGrid').innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted);">Vui lòng chọn ví để tiếp tục.</div>';
+        return;
+    }
+    
+    activeWalletId = walletId;
+    
+    // Lấy hạn mức từ data-attribute của option (hoặc fetch từ server để chính xác nhất)
+    // Để chính xác nhất (lịch sử), nên fetch từ server
+    fetch(`/user/wallets/${walletId}/effective-limit?date=${window.currentYear}-${String(window.currentMonth).padStart(2,'0')}-01`)
+        .then(res => res.json())
+        .then(limit => {
+            document.getElementById('dailySpendingLimit').value = limit || 0;
+        });
+
+    loadBudgetModalData(walletId);
+}
+
+function loadBudgetModalData(walletId) {
     const grid = document.getElementById('categoryBudgetGrid');
     grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</div>';
     
-    document.getElementById('budgetModal').classList.add('active');
-
-    // Fetch existing budgets
     fetch(`/user/wallets/${walletId}/budgets?month=${window.currentMonth}&year=${window.currentYear}`)
         .then(response => response.json())
         .then(budgetMap => {
             renderCategoryGrid(budgetMap);
         });
-        
-    // Update onchange for daily limit
-    document.getElementById('dailySpendingLimit').onchange = () => saveDailyLimit(walletId);
 }
 
 function renderCategoryGrid(budgetMap) {
@@ -137,36 +185,45 @@ function saveDailyLimit(walletId) {
     fetch('/user/wallets/save-daily-limit', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: `walletId=${walletId}&dailyLimit=${dailyLimit}`
     })
     .then(response => {
         if (response.ok) {
-            showToast('Đã cập nhật hạn mức ngày! ✅', 'SUCCESS');
+            showToast('Thiết lập hạn mức thành công! ✅', 'SUCCESS');
+            
+            // Cập nhật thuộc tính trên nút
+            const btn = document.querySelector(`button[onclick*="openBudgetModal('${walletId}'"]`);
+            if (btn) btn.setAttribute('data-limit', dailyLimit);
         } else {
-            showToast('Lỗi khi cập nhật hạn mức. ❌', 'DANGER');
+            showToast('Lỗi khi thiết lập hạn mức. ❌', 'DANGER');
         }
+    })
+    .catch(err => {
+        console.error('Save error:', err);
+        showToast('Lỗi kết nối máy chủ. ❌', 'DANGER');
     });
 }
 
 function saveBudget(categoryId, walletId) {
     const amount = document.getElementById('budget-' + categoryId).value;
-
+    
     fetch('/user/budgets/save-ajax', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: `categoryId=${categoryId}&amount=${amount}&month=${window.currentMonth}&year=${window.currentYear}&walletId=${walletId}`
     }).then(response => {
         if (response.ok) {
-            showToast('Đã cập nhật ngân sách! ✅', 'SUCCESS');
+            showToast('Thiết lập ngân sách thành công! ✅', 'SUCCESS');
         } else {
-            showToast('Lỗi khi cập nhật ngân sách. ❌', 'DANGER');
+            showToast('Lỗi khi thiết lập ngân sách. ❌', 'DANGER');
         }
+    }).catch(err => {
+        console.error('Save budget error:', err);
+        showToast('Lỗi kết nối máy chủ. ❌', 'DANGER');
     });
 }
 
@@ -179,13 +236,26 @@ function showToast(message, type) {
 }
 
 // Close when clicking outside
+function openFundingModal() {
+    document.getElementById('fundingModal').classList.add('active');
+}
+
+function closeFundingModal() {
+    document.getElementById('fundingModal').classList.remove('active');
+}
+
+// Close when clicking outside
 window.addEventListener('click', function(event) {
     const detailModal = document.getElementById('detailModal');
     const budgetModal = document.getElementById('budgetModal');
+    const fundingModal = document.getElementById('fundingModal');
     if (event.target == detailModal) {
         closeDetailModal();
     }
     if (event.target == budgetModal) {
         closeBudgetModal();
+    }
+    if (event.target == fundingModal) {
+        closeFundingModal();
     }
 });
