@@ -14,6 +14,10 @@
                 <i class="fas fa-th-large"></i>
                 <span>Tổng quan</span>
             </a>
+            <a th:if="${#authorization.expression('hasRole(''ADMIN'')')}" th:href="@{/admin/dashboard}" class="sidebar-link" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+                <i class="fas fa-shield-alt"></i>
+                <span>Về trang Admin</span>
+            </a>
             <a th:href="@{/user/diary}" class="sidebar-link"
                 th:classappend="${activeLink == 'diary' ? 'active' : ''}">
                 <i class="fas fa-book"></i>
@@ -43,11 +47,6 @@
                 <i class="fas fa-tags"></i>
                 <span>Danh mục</span>
             </a>
-            <a th:href="@{/user/profile}" class="sidebar-link"
-                th:classappend="${activeLink == 'profile' ? 'active' : ''}">
-                <i class="fas fa-user-circle"></i>
-                <span>Hồ sơ</span>
-            </a>
 
             <div class="sidebar-label">Cửa hàng</div>
             <a th:href="@{/user/shop}" class="sidebar-link" th:classappend="${activeLink == 'shop' ? 'active' : ''}">
@@ -56,55 +55,7 @@
             </a>
         </nav>
 
-        <!-- Premium Upgrade Card -->
-        <div class="sidebar-premium-card"
-            th:if="${!#authentication.principal.equals('anonymousUser') && (user == null || !user.premium)}">
-            <div class="premium-card-content">
-                <div class="premium-icon">
-                    <i class="fas fa-crown"></i>
-                </div>
-                <div class="premium-text">
-                    <span class="premium-title">Nâng cấp Pro</span>
-                    <p class="premium-desc">Mở khóa mọi tính năng</p>
-                </div>
-                <a href="/user/premium" class="btn-premium-mini">
-                    <i class="fas fa-rocket"></i>
-                </a>
-            </div>
-        </div>
 
-        <div class="sidebar-footer" style="border-top: 1px solid var(--border-color); background: #f8fafc;">
-            <div class="user-menu-container">
-                <div class="user-info" th:if="${#authentication.principal != 'anonymousUser'}"
-                    onclick="toggleUserMenu()" style="cursor: pointer; position: relative;">
-                    <div class="user-avatar"
-                        th:style="${user != null and user.premium ? 'border: 2px solid var(--primary);' : ''}">
-                        <span
-                            th:text="${user != null && user.fullName != null && user.fullName.length() > 0 ? #strings.substring(user.fullName, 0, 1).toUpperCase() : (user != null && user.username != null && user.username.length() > 0 ? #strings.substring(user.username, 0, 1).toUpperCase() : 'U')}">U</span>
-                    </div>
-                    <div class="user-details" style="flex: 1;">
-                        <span class="user-name"
-                            th:text="${user != null and user.fullName != null ? user.fullName : #authentication.name}">Full
-                            Name</span>
-                        <div th:if="${user != null and user.premium}"
-                            style="font-size: 0.65rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 2px;">
-                            <i class="fas fa-crown"></i> PREMIUM
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-up" id="userMenuIcon"
-                        style="font-size: 0.7rem; color: var(--text-muted); transition: transform 0.3s;"></i>
-                </div>
-
-                <div id="userDropdown" class="user-dropdown-menu">
-                    <form th:action="@{/logout}" method="post">
-                        <button type="submit" class="btn-logout-minimal">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Đăng xuất</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
     </aside>
 
     <style>
@@ -206,6 +157,8 @@
     </div>
 
     <script th:inline="javascript">
+        window.effectiveDate = [[${user != null && user.testDate != null ? user.testDate : T(java.time.LocalDate).now()}]];
+        
         // Toast Auto-hide logic
         (function () {
             const toasts = document.querySelectorAll('.toast');

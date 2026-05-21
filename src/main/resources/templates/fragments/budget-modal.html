@@ -17,6 +17,13 @@
             <div class="modal-body" style="padding: 2rem; max-height: 70vh; overflow-y: auto;">
                 <!-- Wallet Info (Dynamic via JS) -->
                 <div id="walletInfoSection" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0;">
+                    <div id="walletSelectorContainer" style="display: none; margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Chọn ví cần thiết lập</label>
+                        <select id="modalWalletSelector" class="form-control" style="height: 45px; border-radius: 0.75rem; font-weight: 600;" onchange="changeModalWallet(this.value)">
+                            <option value="">-- Chọn ví --</option>
+                            <option th:each="w : ${allWallets}" th:value="${w.id}" th:text="${w.name}" th:data-limit="${w.dailySpendingLimit}"></option>
+                        </select>
+                    </div>
                     <h3 id="modalWalletName" style="margin: 0; color: var(--text-main); font-weight: 700;">Ví: <span id="targetWalletName"></span></h3>
                 </div>
 

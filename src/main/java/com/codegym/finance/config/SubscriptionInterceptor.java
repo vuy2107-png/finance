@@ -35,7 +35,10 @@ public class SubscriptionInterceptor implements HandlerInterceptor {
 
             User user = userService.findByUsername(auth.getName());
             if (user != null && user.getExpiryDate() != null) {
-                if (LocalDateTime.now().isAfter(user.getExpiryDate())) {
+                java.time.LocalDateTime current = (user.getTestDate() != null)
+                        ? user.getTestDate().atStartOfDay()
+                        : java.time.LocalDateTime.now();
+                if (current.isAfter(user.getExpiryDate())) {
                     // Nếu đã hết hạn, chuyển hướng về trang thông báo hết hạn
                     response.sendRedirect("/upgrade");
                     return false;

@@ -155,10 +155,9 @@
 
         <main class="main-content">
             <div class="pricing-container">
-                <div class="pricing-header">
-                    <h1>Nâng tầm quản lý tài chính</h1>
-                    <p style="font-size: 1.25rem; color: #64748b;">Chọn gói phù hợp để mở khóa toàn bộ sức mạnh của Finance Pro.</p>
-                </div>
+            <div th:replace="~{fragments/top-header :: top-header('Nâng cấp Premium', 'Mở khóa toàn bộ sức mạnh của Finance Pro', ~{})}"></div>
+
+            <div class="pricing-container" style="padding-top: 2rem;">
 
                 <!-- Thông báo -->
                 <div th:if="${message}" class="alert alert-success" style="margin-bottom: 2rem; border-radius: 16px;">
@@ -168,10 +167,22 @@
                     <i class="fas fa-exclamation-circle"></i> <span th:text="${error}"></span>
                 </div>
 
-                <div th:if="${user.premium}" class="alert alert-info" style="margin-bottom: 3rem; border-radius: 20px; padding: 1.5rem; background: #eef2ff; color: #6366f1; border: 1px solid #6366f1;">
+                <!-- Hiển thị khi Premium đang hoạt động -->
+                <div th:if="${user.premiumActive}" class="alert alert-info" style="margin-bottom: 3rem; border-radius: 20px; padding: 1.5rem; background: #eef2ff; color: #6366f1; border: 1px solid #6366f1;">
                     <i class="fas fa-crown" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
                     <h3 style="margin: 0; font-weight: 800;">Bạn đang là thành viên Premium!</h3>
                     <p style="margin: 0.5rem 0 0;">Tận hưởng toàn bộ đặc quyền không giới hạn của Finance Pro.</p>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(99, 102, 241, 0.3); font-weight: 600; font-size: 0.9rem;">
+                        <i class="far fa-calendar-check"></i> Hiệu lực đến: 
+                        <span th:text="${#temporals.format(user.expiryDate, 'dd/MM/yyyy HH:mm')}">--/--/----</span>
+                    </div>
+                </div>
+
+                <!-- Hiển thị khi gói Premium đã hết hạn -->
+                <div th:if="${user.premium && !user.premiumActive}" class="alert alert-warning" style="margin-bottom: 3rem; border-radius: 20px; padding: 1.5rem; background: #fffbeb; color: #d97706; border: 1px solid #f59e0b;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                    <h3 style="margin: 0; font-weight: 800;">Gói Premium của bạn đã hết hạn!</h3>
+                    <p style="margin: 0.5rem 0 0;">Thời gian trải nghiệm Premium của bạn đã kết thúc vào ngày <span th:text="${#temporals.format(user.expiryDate, 'dd/MM/yyyy HH:mm')}">--/--/----</span>. Vui lòng nâng cấp/gia hạn gói bên dưới để tiếp tục sử dụng dịch vụ.</p>
                 </div>
 
                 <div class="pricing-grid">
@@ -185,7 +196,7 @@
                             <li><i class="fas fa-check-circle"></i> Thiết lập mục tiêu tiết kiệm</li>
                             <li><i class="fas fa-times-circle" style="color: #cbd5e1;"></i> Không hỗ trợ ưu tiên</li>
                         </ul>
-                        <form th:if="${!user.premium}" th:action="@{/user/premium/buy}" method="post">
+                        <form th:if="${!user.premiumActive}" th:action="@{/user/premium/buy}" method="post">
                             <input type="hidden" name="plan" value="weekly">
                             <button type="submit" class="btn-select-plan secondary" style="width: 100%; border: none;">Bắt đầu ngay</button>
                         </form>
@@ -202,7 +213,7 @@
                             <li><i class="fas fa-check-circle"></i> Xuất báo cáo Excel/PDF</li>
                             <li><i class="fas fa-check-circle"></i> Hỗ trợ khách hàng 24/7</li>
                         </ul>
-                        <form th:if="${!user.premium}" th:action="@{/user/premium/buy}" method="post">
+                        <form th:if="${!user.premiumActive}" th:action="@{/user/premium/buy}" method="post">
                             <input type="hidden" name="plan" value="monthly">
                             <button type="submit" class="btn-select-plan primary" style="width: 100%; border: none;">Nâng cấp Pro</button>
                         </form>
@@ -219,7 +230,7 @@
                             <li><i class="fas fa-check-circle"></i> Quản lý ngân sách (Budget)</li>
                             <li><i class="fas fa-check-circle"></i> Cố vấn tài chính cá nhân</li>
                         </ul>
-                        <form th:if="${!user.premium}" th:action="@{/user/premium/buy}" method="post">
+                        <form th:if="${!user.premiumActive}" th:action="@{/user/premium/buy}" method="post">
                             <input type="hidden" name="plan" value="yearly">
                             <button type="submit" class="btn-select-plan secondary" style="width: 100%; border: none;">Chọn gói năm</button>
                         </form>

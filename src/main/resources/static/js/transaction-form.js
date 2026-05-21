@@ -103,11 +103,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const balance = parseFloat(selectedOption.getAttribute('data-balance')) || 0;
 
         if ((type === 'EXPENSE' || type === 'TRANSFER') && amount > balance) {
-            balanceWarning.innerText = `⚠️ Cảnh báo: Số dư ví không đủ (Hiện có: ${new Intl.NumberFormat('vi-VN').format(balance)}đ)`;
+            balanceWarning.innerText = `💡 Lưu ý: Giao dịch này sẽ khiến số dư ví trở nên âm (Hiện có: ${new Intl.NumberFormat('vi-VN').format(balance)}đ)`;
+            balanceWarning.style.color = '#f59e0b'; // Màu cam cảnh báo
             balanceWarning.style.display = 'block';
-            amountInput.style.borderColor = 'var(--danger)';
+            amountInput.style.borderColor = '#f59e0b';
         } else {
             balanceWarning.style.display = 'none';
+            balanceWarning.style.color = 'var(--danger)';
             amountInput.style.borderColor = '';
         }
     }
@@ -120,6 +122,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (amountInput) amountInput.addEventListener('input', checkBalance);
     
+    // Chặn ngày tương lai
+    const dateInput = document.getElementById('date');
+    if (dateInput && window.effectiveDate) {
+        dateInput.max = window.effectiveDate;
+        if (dateInput.value > window.effectiveDate) {
+            dateInput.value = window.effectiveDate;
+        }
+    }
+
     // Khởi tạo lần đầu
     filterCategories();
     if (walletSelect) checkBalance();

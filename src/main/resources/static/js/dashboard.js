@@ -99,11 +99,19 @@ function initDashboardCharts(monthlyStats, categoryStats, weeklyStats) {
     const catCtx = document.getElementById('categoryChart').getContext('2d');
     const catLabels = Object.keys(categoryStats || {});
     const catValues = Object.values(categoryStats || {});
+    const catTotal = catValues.reduce((a, b) => a + b, 0);
+    
+    // Pre-calculate labels with percentages for the legend
+    const catLabelsWithPercent = catLabels.map((label, index) => {
+        const val = catValues[index];
+        const percent = catTotal > 0 ? ((val / catTotal) * 100).toFixed(1) : 0;
+        return `${label} (${percent}%)`;
+    });
 
     new Chart(catCtx, {
         type: 'doughnut',
         data: {
-            labels: catLabels,
+            labels: catLabelsWithPercent,
             datasets: [{
                 data: catValues,
                 backgroundColor: [
@@ -116,7 +124,25 @@ function initDashboardCharts(monthlyStats, categoryStats, weeklyStats) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' }
+                legend: { 
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const percent = catTotal > 0 ? ((value / catTotal) * 100).toFixed(1) : 0;
+                            return ` ${label}: ${new Intl.NumberFormat('vi-VN').format(value)} đ`;
+                        }
+                    }
+                }
             },
             cutout: '70%'
         }

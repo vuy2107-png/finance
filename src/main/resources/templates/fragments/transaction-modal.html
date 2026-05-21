@@ -15,7 +15,7 @@
             <!-- Type Tabs - More Compact and Distinct -->
             <div id="modalTabs" style="display: flex; gap: 0.35rem; margin-bottom: 1.5rem; background: #f1f5f9; padding: 0.35rem; border-radius: 14px;">
                 <button type="button" class="tab-btn active" data-type="EXPENSE" onclick="setQuickType('EXPENSE')" style="flex: 1; padding: 0.6rem; border-radius: 10px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">Chi tiêu</button>
-                <button type="button" class="tab-btn" data-type="TRANSFER" onclick="setQuickType('TRANSFER')" style="flex: 1; padding: 0.6rem; border-radius: 10px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">Chuyển tiền</button>
+                <!-- <button type="button" class="tab-btn" data-type="TRANSFER" onclick="setQuickType('TRANSFER')" style="flex: 1; padding: 0.6rem; border-radius: 10px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">Chuyển tiền</button> -->
             </div>
 
             <form th:action="@{/user/transactions/create}" method="post" id="quickForm">
@@ -156,6 +156,17 @@
             document.getElementById('quickId').value = '';
             document.getElementById('quickForm').reset();
             document.getElementById('modalTabs').style.display = 'flex';
+            
+            // Chặn ngày tương lai
+            const dateInput = document.getElementById('quickDate');
+            if (dateInput && window.effectiveDate) {
+                dateInput.max = window.effectiveDate;
+                // Nếu ngày hiện tại trong input đang là tương lai thì reset về today
+                if (dateInput.value > window.effectiveDate) {
+                    dateInput.value = window.effectiveDate;
+                }
+            }
+            
             setQuickType('EXPENSE');
         }
 
@@ -194,6 +205,9 @@
                 document.getElementById('quickId').value = data.id;
                 document.getElementById('quickAmount').value = data.amount;
                 document.getElementById('quickDate').value = data.date;
+                if (window.effectiveDate) {
+                    document.getElementById('quickDate').max = window.effectiveDate;
+                }
                 document.getElementById('quickDesc').value = data.description || '';
                 
                 setQuickType(data.type);

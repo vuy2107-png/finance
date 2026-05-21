@@ -56,12 +56,6 @@ public class UserDepositController {
         t.setDate(java.time.LocalDate.now());
         t.setDescription("SYSTEM_DEPOSIT_INFLOW: Nạp tiền vào tài khoản");
         
-        // Gán vào ví đầu tiên để đồng bộ số dư ví
-        var wallets = walletService.findByUsername(auth.getName());
-        if (!wallets.isEmpty()) {
-            t.setWallet(wallets.get(0));
-        }
-        
         transactionService.save(t, auth.getName());
 
         ra.addFlashAttribute("message", "Nạp tiền thành công! Đã cộng " + String.format("%.0f", amount) + "đ vào tài khoản.");

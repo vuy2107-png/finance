@@ -73,6 +73,7 @@ public class UserService implements IUserService {
         User user = userRepository.findByUsername(username).orElse(null);
         if (user != null) {
             user.setPremium(true);
+            user.setPremiumPlan("trial");
             user.setExpiryDate(java.time.LocalDateTime.now().plusDays(7));
             user.setHasSeenTour(true);
             userRepository.save(user);

@@ -18,4 +18,6 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     org.springframework.data.domain.Page<Wallet> searchWallets(@org.springframework.data.repository.query.Param("username") String username, 
                                                                @org.springframework.data.repository.query.Param("keyword") String keyword, 
                                                                org.springframework.data.domain.Pageable pageable);
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(w.balance) FROM Wallet w")
+    Double sumAllBalances();
 }

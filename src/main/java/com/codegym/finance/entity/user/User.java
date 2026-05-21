@@ -2,6 +2,8 @@ package com.codegym.finance.entity.user;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -21,10 +23,12 @@ public class User {
     private Long id;
 
     @NotBlank(message = "Username không được để trống")
+    @Size(min = 6, message = "Tên đăng nhập không được ít hơn 6 ký tự")
     @Column(unique = true, length = 50)
     private String username;
 
     @NotBlank(message = "Password không được để trống")
+    @Size(min = 6, message = "Mật khẩu không được ít hơn 6 ký tự")
     private String password;
 
     @Transient
@@ -33,6 +37,8 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không đúng định dạng")
     @Column(unique = true)
     private String email;
 
@@ -62,6 +68,9 @@ public class User {
 
     @Column(name = "is_active")
     private Boolean active;
+
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
 
     @Column(name = "expiry_date")
     private LocalDateTime expiryDate;
@@ -95,4 +104,18 @@ public class User {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public boolean isPremiumActive() {
+        if (premium == null || !premium) {
+            return false;
+        }
+        if (expiryDate != null) {
+            if (testDate != null) {
+                return testDate.atStartOfDay().isBefore(expiryDate);
+            }
+            return LocalDateTime.now().isBefore(expiryDate);
+        }
+        return true;
+    }
 }
+

@@ -1,7 +1,8 @@
 <div th:fragment="top-header(title, subtitle, headerActions)">
-    <!-- Simulation Warning Banner (Independent Position) -->
-    <div th:if="${user != null && user.testDate != null}" 
-         style="background: #fff7ed; border: 1px solid #fed7aa; padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100;">
+    <div class="fixed-header-container">
+        <!-- Simulation Warning Banner (Independent Position) -->
+        <div th:if="${user != null && user.testDate != null}" 
+             style="background: #fff7ed; border: 1px solid #fed7aa; padding: 0.8rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-radius: var(--radius-md); margin: 0.5rem 1rem 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
         <div style="display: flex; align-items: center; gap: 0.75rem; color: #9a3412; font-weight: 700; font-size: 0.95rem;">
             <i class="fas fa-magic" style="color: #ea580c;"></i>
             <span>BẠN ĐANG TRONG CHẾ ĐỘ GIẢ LẬP: <span th:text="${#temporals.format(user.testDate, 'dd/MM/yyyy')}" style="background: #ffedd5; padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid #fdba74;">14/05/2026</span></span>
@@ -24,14 +25,76 @@
             <!-- Content passed from the calling page will be inserted here if using th:insert/th:replace -->
             <div th:replace="${headerActions} ?: ~{}"></div>
             
-            <!-- Default User Badge -->
-            <div class="header-user-badge">
-                <div class="avatar-mini" th:text="${user.fullName != null && user.fullName.length() > 0 ? #strings.substring(user.fullName, 0, 1) : (user.username != null && user.username.length() > 0 ? #strings.substring(user.username, 0, 1) : 'U')}">U</div>
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);" th:text="${user.fullName ?: user.username}">Admin</span>
-                    <span style="font-size: 0.65rem; color: var(--success); font-weight: 600;" th:if="${user.premium}"><i class="fas fa-crown"></i> Premium</span>
+            <!-- User Dropdown Menu -->
+            <div class="header-user-dropdown" onclick="toggleHeaderDropdown(event)">
+                <div class="header-user-badge">
+                    <div class="avatar-mini" th:text="${user.fullName != null && !user.fullName.isEmpty() ? user.fullName.substring(0,1).toUpperCase() : (user.username != null && !user.username.isEmpty() ? user.username.substring(0,1).toUpperCase() : 'U')}">U</div>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);" th:text="${user.fullName ?: user.username}">Admin</span>
+                        <span style="font-size: 0.65rem; color: var(--success); font-weight: 600;" th:if="${user.premiumActive}"><i class="fas fa-crown"></i> Premium</span>
+                    </div>
+                    <i class="fas fa-chevron-down" style="font-size: 0.65rem; color: var(--text-muted); margin-left: 0.5rem;"></i>
+                </div>
+
+                <div class="header-dropdown-menu" id="headerDropdown">
+                    <a th:href="@{/user/profile}" class="header-dropdown-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Hồ sơ cá nhân</span>
+                    </a>
+                    <a th:href="@{/user/premium}" class="header-dropdown-item">
+                        <i class="fas fa-crown"></i>
+                        <span th:text="${user.premiumActive ? 'Quản lý Premium' : 'Nâng cấp Premium'}">Nâng cấp Premium</span>
+                    </a>
+                    <div class="header-dropdown-divider"></div>
+                    <button type="button" class="header-dropdown-item" style="color: var(--danger); width: 100%; border: none; background: none; text-align: left; padding: 0.75rem 1.25rem;" onclick="openLogoutModal(event)">
+                        <i class="fas fa-sign-out-alt" style="color: var(--danger);"></i>
+                        <span>Đăng xuất</span>
+                    </button>
                 </div>
             </div>
         </div>
+        </div>
     </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutConfirmModal" class="modal-overlay" style="z-index: 10005;">
+        <div class="modal-content" style="max-width: 420px; border-radius: 20px; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border-bottom: none; padding: 1.25rem 1.5rem;">
+                <h2 class="modal-title" style="color: white; display: flex; align-items: center; gap: 0.75rem; font-size: 1.25rem; margin: 0; font-weight: 700;">
+                    <i class="fas fa-sign-out-alt"></i> Xác nhận đăng xuất
+                </h2>
+                <button type="button" class="modal-close" onclick="closeModal('logoutConfirmModal')" style="color: white; opacity: 0.8; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 2rem 1.5rem 1.5rem; background: white;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: #fee2e2; color: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; font-size: 1.75rem;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p style="margin: 0; color: #475569; font-size: 0.95rem; line-height: 1.6; font-weight: 600;">
+                    Bạn có chắc chắn muốn đăng xuất khỏi ứng dụng <strong style="color: var(--primary);">Finance Pro</strong>?
+                </p>
+            </div>
+            <div class="modal-footer" style="background: #f8fafc; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('logoutConfirmModal')" style="min-width: 90px; height: 40px; border-radius: 10px; font-weight: 600;">Hủy</button>
+                <form th:action="@{/logout}" method="post" style="margin: 0;">
+                    <button type="submit" class="btn" style="background: #ef4444; color: white; border: none; min-width: 110px; height: 40px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: background 0.2s;">Đăng xuất</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function openLogoutModal(event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            // Close user dropdown first
+            const dropdown = document.getElementById('headerDropdown');
+            if (dropdown) {
+                dropdown.classList.remove('active');
+            }
+            // Open the confirm modal
+            openModal('logoutConfirmModal');
+        }
+    </script>
 </div>

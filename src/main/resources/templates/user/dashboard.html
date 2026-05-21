@@ -67,23 +67,7 @@
                     </div>
                 </div>
 
-                <!-- Daily Summary Row -->
-                <div class="card" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color);">
-                    <div style="display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="color: var(--text-muted); font-size: 0.875rem;">Hôm nay:</span>
-                            <span style="font-weight: 600; color: var(--success-color);" th:text="'+' + ${#numbers.formatDecimal(todayIncome, 0, 'COMMA', 0, 'POINT')} + ' đ'">+0 đ</span>
-                            <span style="color: var(--border-color);">|</span>
-                            <span style="font-weight: 600; color: var(--danger-color);" th:text="'-' + ${#numbers.formatDecimal(todayExpense, 0, 'COMMA', 0, 'POINT')} + ' đ'">-0 đ</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; border-left: 1px solid var(--border-color); padding-left: 2rem;">
-                            <span style="color: var(--text-muted); font-size: 0.875rem;">Chênh lệch ngày:</span>
-                            <span th:class="${todayIncome - todayExpense >= 0 ? 'text-success' : 'text-danger'}" 
-                                  style="font-weight: 700;" 
-                                  th:text="${(todayIncome - todayExpense >= 0 ? '+' : '') + #numbers.formatDecimal(todayIncome - todayExpense, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- Metric Cards -->
                 <div class="metric-grid">
@@ -92,7 +76,7 @@
                             <span>SỐ DƯ THÁNG NÀY</span>
                             <div class="metric-icon blue"><i class="fas fa-wallet"></i></div>
                         </div>
-                        <div class="metric-value" th:text="${#numbers.formatDecimal(monthlyBalance, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                        <div th:class="'metric-value ' + ${monthlyBalance < 0 ? 'text-danger' : ''}" th:text="${#numbers.formatDecimal(monthlyBalance, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-header">
@@ -129,7 +113,7 @@
                 <!-- Spending Discipline Section -->
                 <div class="chart-grid" style="margin-top: 1.5rem;">
                     <div class="chart-card">
-                        <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Cơ cấu chi tiêu</h3>
+                        <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Cơ cấu chi tiêu trong tháng</h3>
                         <div style="position: relative; height: 320px;">
                             <canvas id="categoryChart"></canvas>
                         </div>
@@ -137,7 +121,7 @@
                     
                     <div class="chart-card">
                         <h3 class="chart-title"><i class="fas fa-shield-halved"></i> Hạn mức chi tiêu</h3>
-                        <div style="margin-top: 1rem;">
+                        <div style="margin-top: 1rem; max-height: 350px; overflow-y: auto; padding-right: 8px;">
                             <!-- Daily Progress PER WALLET -->
                             <div th:each="limit : ${dailyLimits}" style="margin-bottom: 2rem; background: #f8fafc; padding: 1.25rem; border-radius: 1rem; border: 1px solid #e2e8f0;">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.875rem;">
@@ -150,7 +134,7 @@
                                 
                                 <th:block th:if="${limit.limit != null}">
                                     <div style="height: 0.85rem; background: #e2e8f0; border-radius: 999px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                                        <div th:style="'width: ' + ${limit.percent} + '%; height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background: ' + (${limit.status == 'DANGER' ? 'linear-gradient(90deg, #ef4444, #f87171)' : (limit.status == 'WARNING' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #10b981, #34d399)')})"></div>
+                                        <div th:style="'width: ' + ${limit.percent > 100 ? 100 : limit.percent} + '%; height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background: ' + (${limit.status == 'DANGER' ? 'linear-gradient(90deg, #ef4444, #f87171)' : (limit.status == 'WARNING' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #10b981, #34d399)')})"></div>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">
                                         <span style="font-weight: 600;" th:class="${limit.status == 'DANGER' ? 'text-danger' : (limit.status == 'WARNING' ? 'text-warning' : 'text-success')}" 
@@ -217,7 +201,9 @@
                             <div style="height: 0.4rem; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
                                 <div th:style="'width: ' + ${totalBalance > 0 ? (w.balance * 100 / totalBalance) : 0} + '%; height: 100%; transition: width 0.5s ease; background: ' + ${w.colorCode ?: '#3b82f6'}"></div>
                             </div>
-                            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #64748b; text-align: right;" 
+                            <div style="margin-top: 0.25rem; font-size: 0.75rem; text-align: right;" 
+                                 th:class="${w.balance < 0 ? 'text-danger' : ''}"
+                                 th:style="${w.balance >= 0 ? 'color: #64748b;' : ''}"
                                  th:text="${#numbers.formatDecimal(w.balance, 0, 'COMMA', 0, 'POINT')} + ' đ'"></div>
                         </div>
                     </div>
@@ -263,7 +249,7 @@
                                                       class="badge" style="background: #d1fae5; color: #059669; padding: 0.25rem 0.75rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600;">Vốn quản lý</span>
                                                 <span th:if="${t.description != null and !t.description.contains('Nạp tiền vào quỹ') and !t.description.contains('Khởi tạo')}"
                                                       th:class="${'badge ' + (t.type.name() == 'INCOME' ? 'badge-success' : (t.type.name() == 'EXPENSE' ? 'badge-danger' : 'badge-info'))}"
-                                                      th:text="${t.type.name() == 'INCOME' ? 'Thu nhập' : (t.type.name() == 'EXPENSE' ? 'Chi tiêu' : 'Chuyển tiền')}">Hành động</span>
+                                                      th:text="${t.type.name() == 'INCOME' ? 'Dòng tiền vào' : (t.type.name() == 'EXPENSE' ? 'Chi tiêu' : 'Chuyển tiền')}">Hành động</span>
                                                 <button type="button" th:onclick="'editQuickTransaction(' + ${t.id} + ')'" class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; margin-left: 0.5rem;">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
@@ -341,7 +327,15 @@
                     </div>
                 </div>
                 
-                <div th:if="${#lists.isEmpty(morningReport.overspent) and not #lists.isEmpty(morningReport.good)}" style="text-align: center; padding: 1rem;">
+                <!-- Feedback Message based on Daily Limit vs Category Budgets -->
+                <div th:if="${morningReport.isDailyOverspent and #lists.isEmpty(morningReport.overspent)}" style="text-align: center; padding: 1rem;">
+                    <div style="width: 48px; height: 48px; background: #fff1f2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; border: 1px solid #fecaca;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.25rem;"></i>
+                    </div>
+                    <p style="font-weight: 700; color: #b91c1c; margin: 0;">Bạn đã tiêu vượt hạn mức ngày, các danh mục chi tiêu bạn không vượt mức</p>
+                </div>
+
+                <div th:if="${!morningReport.isDailyOverspent and #lists.isEmpty(morningReport.overspent) and not #lists.isEmpty(morningReport.good)}" style="text-align: center; padding: 1rem;">
                     <div style="width: 48px; height: 48px; background: #d1fae5; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
                         <i class="fas fa-trophy" style="font-size: 1.25rem;"></i>
                     </div>

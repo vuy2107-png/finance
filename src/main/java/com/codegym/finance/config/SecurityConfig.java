@@ -17,27 +17,45 @@ public class SecurityConfig {
     @Autowired
     private CustomAuthenticationSuccessHandler successHandler;
 
-    // C?u hnh phn quy?n + login
+    @Autowired
+    private CustomLogoutHandler logoutHandler;
+
+    // Cấu hình phân quyền + login
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // T?t CSRF d? d? dng test b?ng Postman
+                .csrf(csrf -> csrf.disable()) 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/register", "/login", "/css/**", "/js/**", "/images/**", "/webjars/**", "/test-savings").permitAll()// Cho php truy c?p vo tinh v login/register
-                        .requestMatchers("/user/**").hasRole("USER") // Ch? cho php ngu?i dng c vai tr USER truy c?p vo cc URL b?t d?u b?ng /user/
-                        .requestMatchers("/admin/**").hasRole("ADMIN") // Ch? cho php ngu?i dng c vai tr ADMIN truy c?p vo cc URL b?t d?u b?ng /admin/
-                        .anyRequest().authenticated() // Yu c?u xc th?c cho t?t c? cc yu c?u khc
+                        .requestMatchers("/register", "/login", "/css/**", "/js/**", "/images/**", "/webjars/**", "/test-savings").permitAll()
+                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN") 
+                        .requestMatchers("/admin/**").hasRole("ADMIN") 
+                        .anyRequest().authenticated() 
                 )
                 .formLogin(form -> form
-                        .loginPage("/login") // Ch? d?nh trang login ty ch?nh
+                        .loginPage("/login") 
                         .successHandler(successHandler)
-                        .permitAll() // Cho php t?t c? m?i ngu?i truy c?p vo
+                        .permitAll() 
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/login") // URL d? th?c hi?n logout
+                        .addLogoutHandler(logoutHandler)
+                        .logoutSuccessUrl("/login") 
+                )
+                .sessionManagement(session -> session
+                        .maximumSessions(-1) // Không giới hạn số thiết bị đăng nhập đồng thời
+                        .sessionRegistry(sessionRegistry())
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public org.springframework.security.core.session.SessionRegistry sessionRegistry() {
+        return new org.springframework.security.core.session.SessionRegistryImpl();
+    }
+
+    @Bean
+    public org.springframework.security.web.session.HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new org.springframework.security.web.session.HttpSessionEventPublisher();
     }
 
     // C?u hnh m ha m?t kh?u

@@ -45,10 +45,7 @@ public class WalletService implements IWalletService {
         if (isIncome) {
             wallet.setBalance(wallet.getBalance() + amount);
         } else {
-            // Kiểm tra số dư nếu là chi tiêu hoặc chuyển đi
-            if (wallet.getBalance() < amount) {
-                throw new RuntimeException("Số dư trong ví '" + wallet.getName() + "' không đủ để thực hiện giao dịch này! (Hiện có: " + String.format("%.0f", wallet.getBalance()) + "đ)");
-            }
+            // Cho phép số dư âm để theo dõi chi tiêu vượt mức
             wallet.setBalance(wallet.getBalance() - amount);
         }
         walletRepository.save(wallet);

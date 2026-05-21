@@ -33,12 +33,30 @@ function closeMonthlySetup() {
     closeModal('monthlySetupModal');
 }
 
-// Global click handler to close modals when clicking on overlay
+function toggleHeaderDropdown(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById('headerDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+    }
+}
+
+// Global click handler to close modals and dropdowns when clicking on overlay or outside
 document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('click', function(event) {
+        // Close modals
         if (event.target.classList.contains('modal-overlay')) {
             event.target.classList.remove('active');
             event.target.style.display = 'none';
+        }
+
+        // Close header dropdown when clicking outside
+        const headerDropdown = document.getElementById('headerDropdown');
+        const headerBadge = document.querySelector('.header-user-dropdown');
+        if (headerDropdown && headerDropdown.classList.contains('active')) {
+            if (headerBadge && !headerBadge.contains(event.target)) {
+                headerDropdown.classList.remove('active');
+            }
         }
     });
 });

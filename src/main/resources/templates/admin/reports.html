@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo hệ thống | Admin Finance Pro</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --admin-primary: #6366f1;
+            --admin-secondary: #4f46e5;
+            --admin-dark: #0f172a;
+            --admin-bg: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--admin-bg);
+            color: var(--admin-dark);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .admin-layout {
+            display: flex;
+            width: 100%;
+        }
+
+        .admin-main {
+            flex: 1;
+            padding: 2.5rem;
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .report-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--admin-dark);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .export-center {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .btn-export {
+            background: white;
+            color: var(--admin-primary);
+            padding: 1rem 2rem;
+            border-radius: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+        }
+
+        .btn-export:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            background: #f8fafc;
+        }
+
+        @media (max-width: 1200px) {
+            .admin-main { margin-left: 0; width: 100%; }
+            .report-grid { grid-template-columns: 1fr; }
+            .export-center { grid-column: span 1; flex-direction: column; text-align: center; gap: 1.5rem; }
+        }
+
+        /* Chart Tooltip Customization */
+        canvas {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <div th:replace="~{fragments/admin-sidebar :: admin-sidebar('reports')}"></div>
+
+        <main class="admin-main">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem;">
+                <div>
+                    <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0; color: var(--admin-dark); letter-spacing: -1px;">
+                        Báo cáo <span style="color: var(--admin-primary);">Hệ thống</span>
+                    </h1>
+                    <p style="color: #64748b; margin-top: 0.5rem; font-size: 1.1rem;">Phân tích sâu sắc về dữ liệu người dùng và kinh tế.</p>
+                </div>
+                <div style="background: white; padding: 0.75rem 1.25rem; border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                    <i class="fas fa-calendar-alt" style="color: var(--admin-primary);"></i>
+                    <span style="font-weight: 700; font-size: 0.9rem; color: #1e293b;" th:text="${#temporals.format(#temporals.createNow(), 'dd MMMM, yyyy')}">14 May, 2026</span>
+                </div>
+            </div>
+
+            <div class="report-grid">
+                <!-- 1. User Segmentation -->
+                <div class="report-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fas fa-pie-chart" style="color: #6366f1;"></i> Phân bổ Người dùng</h3>
+                            <p class="card-subtitle">Tỉ lệ các nhóm khách hàng theo gói dịch vụ</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="segmentationChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 2. Spending Analytics -->
+                <div class="report-card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fas fa-chart-bar" style="color: #10b981;"></i> Phân tích Chi tiêu</h3>
+                            <p class="card-subtitle">Top 10 danh mục được chi tiền nhiều nhất</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="spendingChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 3. Cashflow Comparison -->
+                <div class="report-card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title"><i class="fas fa-money-bill-trend-up" style="color: #f59e0b;"></i> So sánh Dòng tiền (6 tháng qua)</h3>
+                            <p class="card-subtitle">So sánh Tổng nạp (Dòng tiền vào) vs Doanh thu thực (Mua Premium)</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height: 350px;">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 4. Data Export Center -->
+                <div class="export-center">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.75rem; font-weight: 800;">Trung tâm Xuất dữ liệu</h2>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">Tải xuống toàn bộ dữ liệu hệ thống để lưu trữ offline hoặc báo cáo thuế.</p>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="/admin/export/users" class="btn-export">
+                            <i class="fas fa-file-csv"></i> Xuất User (CSV)
+                        </a>
+                        <a href="/admin/export/transactions" class="btn-export">
+                            <i class="fas fa-file-invoice"></i> Xuất Giao dịch (CSV)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script th:inline="javascript">
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        // 1. User Segmentation Chart
+        const segData = /*[[${segmentationData}]]*/ {};
+        new Chart(document.getElementById('segmentationChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(segData),
+                datasets: [{
+                    data: Object.values(segData),
+                    backgroundColor: ['#94a3b8', '#f59e0b', '#ef4444', '#6366f1'],
+                    hoverOffset: 15,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            font: { weight: '600', size: 12 }, 
+                            padding: 20,
+                            usePointStyle: true
+                        } 
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { size: 14, weight: '700' }
+                    }
+                }
+            }
+        });
+
+        // 2. Spending Analytics Chart
+        const spendingData = /*[[${topCategories}]]*/ {};
+        new Chart(document.getElementById('spendingChart'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(spendingData),
+                datasets: [{
+                    label: 'Tổng chi (VNĐ)',
+                    data: Object.values(spendingData),
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barThickness: 25
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.parsed.x.toLocaleString() + 'đ';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { 
+                            callback: value => (value/1000000) + 'M'
+                        } 
+                    },
+                    y: { 
+                        grid: { display: false }, 
+                        ticks: { font: { weight: '600' } } 
+                    }
+                }
+            }
+        });
+
+        // 3. Cashflow Comparison Chart
+        const cashflowRaw = /*[[${cashflowData}]]*/ [];
+        new Chart(document.getElementById('cashflowChart'), {
+            type: 'line',
+            data: {
+                labels: cashflowRaw.map(d => d.label),
+                datasets: [
+                    {
+                        label: 'Dòng tiền nạp',
+                        data: cashflowRaw.map(d => d.deposits),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 3
+                    },
+                    {
+                        label: 'Doanh thu thực (Premium)',
+                        data: cashflowRaw.map(d => d.revenue),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#fff',
+                        pointBorderWidth: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { 
+                        position: 'top', 
+                        align: 'end',
+                        labels: { font: { weight: '700' }, usePointStyle: true, padding: 20 } 
+                    },
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        padding: 15,
+                        cornerRadius: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.dataset.label + ': ' + context.parsed.y.toLocaleString() + 'đ';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: '#f1f5f9' },
+                        ticks: { 
+                            callback: value => value.toLocaleString() + 'đ',
+                            font: { size: 11, weight: '600' }
+                        }
+                    },
+                    x: { grid: { display: false }, ticks: { font: { weight: '600' } } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

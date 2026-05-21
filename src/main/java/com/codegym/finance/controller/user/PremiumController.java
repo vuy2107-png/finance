@@ -89,12 +89,6 @@ public class PremiumController {
         t.setDate(LocalDate.now());
         t.setDescription("Nâng cấp Premium: " + planName);
         
-        // Gán vào ví đầu tiên của user để hợp lệ hóa transaction
-        var wallets = walletService.findByUsername(auth.getName());
-        if (!wallets.isEmpty()) {
-            t.setWallet(wallets.get(0));
-        }
-        
         transactionService.save(t, auth.getName());
 
         ra.addFlashAttribute("message", "Chúc mừng! Bạn đã trở thành thành viên PREMIUM với " + planName + ". Hiệu lực đến: " + 

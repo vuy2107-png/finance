@@ -15,15 +15,7 @@ public interface IBudgetService {
     
     // Thêm phương thức lưu hạn mức ngày cho ví
     void saveDailyLimit(Long walletId, Double dailyLimit, String username);
-
-    @lombok.Data
-    @lombok.AllArgsConstructor
-    @lombok.NoArgsConstructor
-    public static class BudgetAlertDTO {
-        private boolean alert;
-        private String message;
-        private String type; // WARNING (80%), DANGER (100%)
-        private Double percentage;
-        private Double spentAmount;
-    }
+    
+    BudgetAlertDTO checkDailyLimitAlert(String username, Long walletId, java.time.LocalDate date);
+    Double getDailyLimitForWallet(String username, Long walletId, java.time.LocalDate date);
 }

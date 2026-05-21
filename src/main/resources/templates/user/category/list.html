@@ -20,15 +20,15 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="container">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                    <div>
-                        <h1 style="font-size: 1.875rem; font-weight: 700;">Quản lý Danh mục</h1>
-                        <p style="color: var(--text-muted);">Cá nhân hóa các loại thu nhập và chi tiêu của bạn.</p>
-                    </div>
+            <div th:replace="~{fragments/top-header :: top-header('Quản lý Danh mục', 'Cá nhân hóa các loại thu nhập và chi tiêu của bạn', ~{::headerActions})}">
+                <div th:fragment="headerActions">
                     <button onclick="openAddModal()" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Thêm danh mục
                     </button>
                 </div>
+            </div>
+
+            <div class="container" style="padding-top: 2rem;">
 
                 <div th:if="${message}" class="alert alert-success" style="margin-bottom: 1.5rem;">
                     <i class="fas fa-check-circle"></i> <span th:text="${message}"></span>
@@ -38,7 +38,7 @@
                 </div>
 
                 <div class="category-grid">
-                    <div th:each="cat : ${categories}" class="category-card">
+                    <div th:each="cat : ${categories}" th:if="${cat.type.name() == 'EXPENSE'}" class="category-card">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div class="category-icon"
                                 th:style="'background: ' + ${cat.colorCode ?: '#3b82f6'} + '20; color: ' + ${cat.colorCode ?: '#3b82f6'}">
@@ -46,7 +46,7 @@
                             </div>
                             <span
                                 th:class="'category-badge ' + ${cat.type.name() == 'INCOME' ? 'badge-income' : 'badge-expense'}"
-                                th:text="${cat.type.name() == 'INCOME' ? 'Thu nhập' : 'Chi tiêu'}"></span>
+                                th:text="${cat.type.name() == 'INCOME' ? 'Dòng tiền vào' : 'Chi tiêu'}"></span>
                         </div>
 
                         <h3 th:text="${cat.name}" style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">
@@ -92,13 +92,7 @@
                         <input type="text" th:field="*{name}" id="catName" class="form-control"
                             placeholder="VD: Shopping, Freelance..." required>
                     </div>
-                    <div class="form-group">
-                        <label for="catType">Loại</label>
-                        <select th:field="*{type}" id="catType" class="form-control" required>
-                            <option th:each="t : ${types}" th:if="${t.name() != 'TRANSFER'}" th:value="${t}"
-                                th:text="${t.name() == 'INCOME' ? 'Thu nhập' : 'Chi tiêu'}"></option>
-                        </select>
-                    </div>
+                    <input type="hidden" th:field="*{type}" id="catType" value="EXPENSE">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label>Chọn Icon</label>

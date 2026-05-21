@@ -58,9 +58,16 @@ public class WalletController {
         Page<Wallet> walletPage = walletService.searchWallets(auth.getName(), keyword, pageable);
         
         model.addAttribute("wallets", walletPage.getContent());
+        model.addAttribute("allWallets", walletService.findByUsername(auth.getName())); // For modal selector
         model.addAttribute("page", walletPage);
         model.addAttribute("keyword", keyword);
         model.addAttribute("newWallet", new Wallet());
+        
+        // For budget modal
+        model.addAttribute("categories", categoryService.findByUserName(auth.getName()));
+        LocalDate now = LocalDate.now();
+        model.addAttribute("currentMonth", now.getMonthValue());
+        model.addAttribute("currentYear", now.getYear());
         
         return "user/wallet/list";
     }
@@ -77,6 +84,10 @@ public class WalletController {
         if (wallet == null) return "redirect:/user/wallets";
         
         model.addAttribute("wallet", wallet);
+        
+        // Lấy hạn mức thực tế cho ngày đang xem (mặc định là ngày hiện tại/giả lập)
+        LocalDate effectiveDate = userService.getEffectiveDate(username);
+        model.addAttribute("effectiveLimit", budgetService.getDailyLimitForWallet(username, id, effectiveDate));
         
         // Sử dụng bộ lọc giao dịch nhưng fix cứng walletId
         Page<Transaction> transactionPage = transactionService.filterTransactions(username, startDate, endDate, id, null, keyword, pageable);
@@ -98,6 +109,8 @@ public class WalletController {
         LocalDate now = LocalDate.now();
         model.addAttribute("currentMonth", now.getMonthValue());
         model.addAttribute("currentYear", now.getYear());
+        model.addAttribute("allWallets", walletService.findByUsername(username));
+        model.addAttribute("categories", categoryService.findByUserName(username));
         
         return "user/wallet/detail";
     }
@@ -178,6 +191,30 @@ public class WalletController {
         return "redirect:/user/dashboard";
     }
 
+    @PostMapping("/fund")
+    public String fund(@RequestParam Long walletId, 
+                       @RequestParam Double amount, 
+                       @RequestParam String description, 
+                       Authentication auth, 
+                       RedirectAttributes redirectAttributes) {
+        String username = auth.getName();
+        Wallet wallet = walletService.findById(walletId, username);
+        if (wallet != null && amount != null && amount > 0) {
+            Transaction t = new Transaction();
+            t.setAmount(amount);
+            t.setType(TransactionType.INCOME);
+            t.setDate(LocalDate.now());
+            t.setWallet(wallet);
+            t.setDescription(description != null && !description.isEmpty() ? description : "Cấp vốn bổ sung");
+            
+            transactionService.save(t, username);
+            redirectAttributes.addFlashAttribute("message", "Đã cấp vốn thành công cho ví " + wallet.getName() + "!");
+        } else {
+            redirectAttributes.addFlashAttribute("error", "Số tiền cấp vốn không hợp lệ!");
+        }
+        return "redirect:/user/wallets/" + walletId;
+    }
+
     @PostMapping("/save-daily-limit")
     @ResponseBody
     public ResponseEntity<Void> saveDailyLimit(@RequestParam Long walletId, 
@@ -195,5 +232,12 @@ public class WalletController {
                                                       Authentication auth) {
         Map<Long, Double> budgets = budgetService.getBudgetMapByMonth(auth.getName(), month, year, id);
         return ResponseEntity.ok(budgets);
+    }
+
+    @GetMapping("/{id}/effective-limit")
+    @ResponseBody
+    public Double getEffectiveLimit(@PathVariable Long id, @RequestParam String date, Authentication auth) {
+        LocalDate targetDate = LocalDate.parse(date);
+        return budgetService.getDailyLimitForWallet(auth.getName(), id, targetDate);
     }
 }
