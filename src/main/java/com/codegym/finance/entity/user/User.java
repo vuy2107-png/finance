@@ -89,6 +89,9 @@ public class User {
 
     private LocalDate testDate; // Ngày giả lập hệ thống cho mục đích test
 
+    @Column(name = "auto_suggest_daily_limit")
+    private Boolean autoSuggestDailyLimit = false;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

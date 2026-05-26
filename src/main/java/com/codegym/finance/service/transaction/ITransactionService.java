@@ -33,6 +33,7 @@ public interface ITransactionService {
 
     double getTodayExpense(String username);
     double getTodayExpenseForWallet(String username, Long walletId);
+    double getThisMonthExpenseForWallet(String username, Long walletId);
 
     double getThisMonthIncome(String username);
 

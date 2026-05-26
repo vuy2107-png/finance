@@ -180,11 +180,50 @@ public class TransactionController {
                 
                 // 1. Daily Limit for this wallet (Use historical/effective limit for the simulated date)
                 Double effectiveLimit = budgetService.getDailyLimitForWallet(username, w.getId(), now);
+                boolean isSuggested = false;
+                
+                // Cảnh báo chi tiêu vượt quá tiến trình thời gian của tháng
+                int currentDay = now.getDayOfMonth();
+                java.time.YearMonth yearMonthObject = java.time.YearMonth.of(now.getYear(), now.getMonthValue());
+                int daysInMonth = yearMonthObject.lengthOfMonth();
+                double spentThisMonth = transactionService.getThisMonthExpenseForWallet(username, w.getId());
+                double initialBalance = w.getBalance() + spentThisMonth; // xấp xỉ số tiền đầu tháng
+                if (initialBalance > 0) {
+                    double spentPercent = (spentThisMonth / initialBalance) * 100;
+                    double timePercent = ((double) currentDay / daysInMonth) * 100;
+                    if (Double.isNaN(spentPercent) || Double.isInfinite(spentPercent)) {
+                        spentPercent = 0.0;
+                    }
+                    if (Double.isNaN(timePercent) || Double.isInfinite(timePercent)) {
+                        timePercent = 0.0;
+                    }
+                    if (spentPercent > timePercent) {
+                        walletData.put("overspentWarning", true);
+                        walletData.put("spentPercent", spentPercent);
+                        walletData.put("timePercent", timePercent);
+                    }
+                }
+                
+                if (Boolean.TRUE.equals(currentUser.getAutoSuggestDailyLimit())) {
+                    // Tính số ngày còn lại trong tháng
+                    int remainingDays = daysInMonth - currentDay + 1;
+                    
+                    if (remainingDays > 0) {
+                        double suggested = w.getBalance() / remainingDays;
+                        effectiveLimit = suggested > 0 ? suggested : 0.0;
+                        isSuggested = true;
+                        walletData.put("isSuggested", true);
+                    }
+                }
+
                 if (effectiveLimit != null && effectiveLimit > 0) {
                     double todayWalletExp = transactionService.getTodayExpenseForWallet(username, w.getId());
                     walletData.put("spent", todayWalletExp);
                     walletData.put("limit", effectiveLimit);
                     double percent = (todayWalletExp / effectiveLimit) * 100;
+                    if (Double.isNaN(percent) || Double.isInfinite(percent)) {
+                        percent = 0.0;
+                    }
                     walletData.put("percent", percent);
                     walletData.put("status", percent > 100 ? "DANGER" : (percent > 80 ? "WARNING" : "SUCCESS"));
                 }

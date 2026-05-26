@@ -76,42 +76,26 @@
                             <span>SỐ DƯ THÁNG NÀY</span>
                             <div class="metric-icon blue"><i class="fas fa-wallet"></i></div>
                         </div>
-                        <div th:class="'metric-value ' + ${monthlyBalance < 0 ? 'text-danger' : ''}" th:text="${#numbers.formatDecimal(monthlyBalance, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                        <div th:class="'metric-value ' + ${monthlyBalance < 0 ? 'text-danger' : ''}" th:text="${#numbers.formatDecimal(monthlyBalance, 1, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-header">
                             <span>SỐ TIỀN QUẢN LÝ THÁNG NÀY</span>
                             <div class="metric-icon green"><i class="fas fa-arrow-up"></i></div>
                         </div>
-                        <div class="metric-value" th:text="${#numbers.formatDecimal(monthlyIncome, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                        <div class="metric-value" th:text="${#numbers.formatDecimal(monthlyIncome, 1, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-header">
                             <span>CHI TIÊU THÁNG NÀY</span>
                             <div class="metric-icon red"><i class="fas fa-arrow-down"></i></div>
                         </div>
-                        <div class="metric-value" th:text="${#numbers.formatDecimal(monthlyExpense, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="chart-grid">
-                    <div class="chart-card">
-                        <h3 class="chart-title"><i class="fas fa-chart-line"></i> Xu hướng 6 tháng</h3>
-                        <div style="position: relative; height: 320px;">
-                            <canvas id="mainChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <h3 class="chart-title"><i class="fas fa-chart-bar"></i> Biến động 7 ngày</h3>
-                        <div style="position: relative; height: 320px;">
-                            <canvas id="weeklyChart"></canvas>
-                        </div>
+                        <div class="metric-value" th:text="${#numbers.formatDecimal(monthlyExpense, 1, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
                     </div>
                 </div>
 
                 <!-- Spending Discipline Section -->
-                <div class="chart-grid" style="margin-top: 1.5rem;">
+                <div class="chart-grid">
                     <div class="chart-card">
                         <h3 class="chart-title"><i class="fas fa-chart-pie"></i> Cơ cấu chi tiêu trong tháng</h3>
                         <div style="position: relative; height: 320px;">
@@ -119,40 +103,108 @@
                         </div>
                     </div>
                     
-                    <div class="chart-card">
-                        <h3 class="chart-title"><i class="fas fa-shield-halved"></i> Hạn mức chi tiêu</h3>
-                        <div style="margin-top: 1rem; max-height: 350px; overflow-y: auto; padding-right: 8px;">
+                    <div class="chart-card" id="daily-limit-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 class="chart-title" style="margin-bottom: 0;"><i class="fas fa-shield-halved"></i> Hạn mức chi tiêu</h3>
+                            <div class="suggest-toggle" style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Gợi ý tự động</span>
+                                <label class="switch" style="position: relative; display: inline-block; width: 36px; height: 20px;">
+                                    <input type="checkbox" id="toggleSuggestLimit" th:checked="${user.autoSuggestDailyLimit}" onchange="toggleSuggestLimitApi(this.checked)" style="position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; margin: 0; cursor: pointer; z-index: 2;">
+                                    <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px;"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <style>
+                            .switch input:checked + .slider { background-color: #6366f1; }
+                            .switch input:checked + .slider:before { transform: translateX(16px); }
+                            .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+                        </style>
+                        <script>
+                            function toggleSuggestLimitApi(enabled) {
+                                const checkbox = document.getElementById('toggleSuggestLimit');
+                                if (checkbox) checkbox.disabled = true;
+                                
+                                console.log('Toggling suggest limit state to:', enabled);
+                                
+                                fetch('/user/profile/api/toggle-suggest-limit?enabled=' + enabled, { method: 'POST' })
+                                .then(response => {
+                                    if(response.ok) {
+                                        const url = new URL(window.location.href);
+                                        url.searchParams.set('t', Date.now());
+                                        return fetch(url.toString(), { cache: 'no-store' });
+                                    }
+                                    throw new Error('API cập nhật trạng thái thất bại: Mã lỗi ' + response.status);
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Tải lại dữ liệu thất bại: Mã lỗi ' + response.status);
+                                    }
+                                    return response.text();
+                                })
+                                .then(html => {
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(html, 'text/html');
+                                    const newCard = doc.getElementById('daily-limit-card');
+                                    const currentCard = document.getElementById('daily-limit-card');
+                                    if (newCard && currentCard) {
+                                        currentCard.innerHTML = newCard.innerHTML;
+                                        console.log('Daily limit card updated successfully!');
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error(err);
+                                    alert('Đã xảy ra lỗi khi lưu cài đặt gợi ý tự động: ' + err.message);
+                                    if (checkbox) {
+                                        checkbox.checked = !enabled;
+                                        checkbox.disabled = false;
+                                    }
+                                });
+                            }
+                        </script>
+
+                        <div style="max-height: 350px; overflow-y: auto; padding-right: 8px;">
                             <!-- Daily Progress PER WALLET -->
                             <div th:each="limit : ${dailyLimits}" style="margin-bottom: 2rem; background: #f8fafc; padding: 1.25rem; border-radius: 1rem; border: 1px solid #e2e8f0;">
+                                
+                                <!-- Cảnh báo tiêu quá mức trung bình ngày -->
+                                <div th:if="${limit['overspentWarning']}" style="margin-bottom: 1rem; background: #fff1f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 0.75rem; display: flex; gap: 0.5rem; align-items: flex-start;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-top: 2px;"></i>
+                                    <div style="font-size: 0.8125rem; color: #991b1b; line-height: 1.4;">
+                                        <strong>Cảnh báo:</strong> Bạn đã tiêu <span th:text="${limit['spentPercent'] != null ? #numbers.formatDecimal(limit['spentPercent'], 1, 0) : '0'} + '%'"></span> ngân sách của ví này trong khi tháng mới trôi qua <span th:text="${limit['timePercent'] != null ? #numbers.formatDecimal(limit['timePercent'], 1, 0) : '0'} + '%'"></span> thời gian! Hãy chú ý kiểm soát chi tiêu.
+                                    </div>
+                                </div>
+
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.875rem;">
                                     <span style="font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
                                         <i class="fas fa-wallet" style="color: #6366f1;"></i>
-                                        <span th:text="${limit.walletName}">Tên ví</span>
+                                        <span th:text="${limit['walletName']}">Tên ví</span>
+                                        <span th:if="${limit['isSuggested']}" style="font-size: 0.65rem; background: #e0e7ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Gợi ý</span>
                                     </span>
-                                    <span th:if="${limit.limit != null}" style="font-weight: 600;" th:text="'Hôm nay: ' + ${#numbers.formatDecimal(limit.spent, 0, 'COMMA', 0, 'POINT')} + ' / ' + ${#numbers.formatDecimal(limit.limit, 0, 'COMMA', 0, 'POINT')} + ' đ'"></span>
+                                    <span th:if="${limit['limit'] != null}" style="font-weight: 600;" th:text="'Hôm nay: ' + ${limit['spent'] != null ? #numbers.formatDecimal(limit['spent'], 1, 'COMMA', 0, 'POINT') : '0'} + ' / ' + ${limit['limit'] != null ? #numbers.formatDecimal(limit['limit'], 1, 'COMMA', 0, 'POINT') : '0'} + ' đ'"></span>
                                 </div>
                                 
-                                <th:block th:if="${limit.limit != null}">
+                                <th:block th:if="${limit['limit'] != null}">
                                     <div style="height: 0.85rem; background: #e2e8f0; border-radius: 999px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                                        <div th:style="'width: ' + ${limit.percent > 100 ? 100 : limit.percent} + '%; height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background: ' + (${limit.status == 'DANGER' ? 'linear-gradient(90deg, #ef4444, #f87171)' : (limit.status == 'WARNING' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #10b981, #34d399)')})"></div>
+                                        <div th:style="'width: ' + ${limit['percent'] > 100 ? 100 : limit['percent']} + '%; height: 100%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background: ' + (${limit['status'] == 'DANGER' ? 'linear-gradient(90deg, #ef4444, #f87171)' : (limit['status'] == 'WARNING' ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #10b981, #34d399)')})"></div>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">
-                                        <span style="font-weight: 600;" th:class="${limit.status == 'DANGER' ? 'text-danger' : (limit.status == 'WARNING' ? 'text-warning' : 'text-success')}" 
-                                              th:text="${limit.status == 'DANGER' ? 'Đã vượt hạn mức!' : (limit.status == 'WARNING' ? 'Sắp chạm ngưỡng' : 'Kiểm soát tốt')}"></span>
-                                        <span style="font-weight: 700; color: #1e293b;" th:text="${#numbers.formatDecimal(limit.percent, 0, 0)} + '%'"></span>
+                                        <span style="font-weight: 600;" th:class="${limit['status'] == 'DANGER' ? 'text-danger' : (limit['status'] == 'WARNING' ? 'text-warning' : 'text-success')}" 
+                                              th:text="${limit['status'] == 'DANGER' ? 'Đã vượt hạn mức!' : (limit['status'] == 'WARNING' ? 'Sắp chạm ngưỡng' : 'Kiểm soát tốt')}"></span>
+                                        <span style="font-weight: 700; color: #1e293b;" th:text="${limit['percent'] != null ? #numbers.formatDecimal(limit['percent'], 1, 0) : '0'} + '%'"></span>
                                     </div>
                                 </th:block>
 
                                 <!-- Nest Category Budgets for this wallet -->
-                                <div th:if="${not #lists.isEmpty(limit.categoryBudgets)}" style="margin-top: 1.25rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem;">
+                                <div th:if="${not #lists.isEmpty(limit['categoryBudgets'])}" style="margin-top: 1.25rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem;">
                                     <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Hạn mức danh mục (Hôm nay)</div>
-                                    <div th:each="cb : ${limit.categoryBudgets}" style="margin-bottom: 1rem;">
+                                    <div th:each="cb : ${limit['categoryBudgets']}" style="margin-bottom: 1rem;">
                                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.8125rem;">
-                                            <span style="font-weight: 600; color: #334155;" th:text="${cb.categoryName}">Danh mục</span>
-                                            <span style="color: #64748b; font-size: 0.75rem;" th:text="${#numbers.formatDecimal(cb.spentAmount, 0, 'COMMA', 0, 'POINT')} + ' / ' + ${#numbers.formatDecimal(cb.limitAmount, 0, 'COMMA', 0, 'POINT')}"></span>
+                                            <span style="font-weight: 600; color: #334155;" th:text="${cb['categoryName']}">Danh mục</span>
+                                            <span style="color: #64748b; font-size: 0.75rem;" th:text="${cb['spentAmount'] != null ? #numbers.formatDecimal(cb['spentAmount'], 1, 'COMMA', 0, 'POINT') : '0'} + ' / ' + ${cb['limitAmount'] != null ? #numbers.formatDecimal(cb['limitAmount'], 1, 'COMMA', 0, 'POINT') : '0'}"></span>
                                         </div>
                                         <div style="height: 0.45rem; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
-                                            <div th:style="'width: ' + ${cb.percent > 100 ? 100 : cb.percent} + '%; height: 100%; transition: width 0.5s ease; background: ' + (${cb.percent >= 100 ? '#ef4444' : (cb.percent >= 80 ? '#f59e0b' : '#6366f1')})"></div>
+                                            <div th:style="'width: ' + ${(cb['percent'] != null ? (cb['percent'] > 100 ? 100 : cb['percent']) : 0)} + '%; height: 100%; transition: width 0.5s ease; background: ' + (${cb['percent'] != null ? (cb['percent'] >= 100 ? '#ef4444' : (cb['percent'] >= 80 ? '#f59e0b' : '#6366f1')) : '#6366f1'})"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -165,11 +217,11 @@
                                 </div>
                                 <div th:each="gb : ${globalBudgets}" style="margin-bottom: 1.25rem; background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0;">
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8125rem;">
-                                        <span style="font-weight: 600; color: #334155;" th:text="${gb.categoryName}">Danh mục</span>
-                                        <span style="color: #64748b; font-size: 0.75rem;" th:text="${#numbers.formatDecimal(gb.spentAmount, 0, 'COMMA', 0, 'POINT')} + ' / ' + ${#numbers.formatDecimal(gb.limitAmount, 0, 'COMMA', 0, 'POINT')}"></span>
+                                        <span style="font-weight: 600; color: #334155;" th:text="${gb['categoryName']}">Danh mục</span>
+                                        <span style="color: #64748b; font-size: 0.75rem;" th:text="${gb['spentAmount'] != null ? #numbers.formatDecimal(gb['spentAmount'], 1, 'COMMA', 0, 'POINT') : '0'} + ' / ' + ${gb['limitAmount'] != null ? #numbers.formatDecimal(gb['limitAmount'], 1, 'COMMA', 0, 'POINT') : '0'}"></span>
                                     </div>
                                     <div style="height: 0.45rem; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
-                                        <div th:style="'width: ' + ${gb.percent > 100 ? 100 : gb.percent} + '%; height: 100%; transition: width 0.5s ease; background: ' + (${gb.percent >= 100 ? '#ef4444' : (gb.percent >= 80 ? '#f59e0b' : '#6366f1')})"></div>
+                                        <div th:style="'width: ' + ${(gb['percent'] != null ? (gb['percent'] > 100 ? 100 : gb['percent']) : 0)} + '%; height: 100%; transition: width 0.5s ease; background: ' + (${gb['percent'] != null ? (gb['percent'] >= 100 ? '#ef4444' : (gb['percent'] >= 80 ? '#f59e0b' : '#6366f1')) : '#6366f1'})"></div>
                                     </div>
                                 </div>
                             </div>
@@ -185,6 +237,22 @@
                     </div>
                 </div>
 
+                <!-- Charts Section -->
+                <div class="chart-grid" style="margin-top: 1.5rem;">
+                    <div class="chart-card">
+                        <h3 class="chart-title"><i class="fas fa-chart-line"></i> Xu hướng 6 tháng</h3>
+                        <div style="position: relative; height: 320px;">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title"><i class="fas fa-chart-bar"></i> Biến động 7 ngày</h3>
+                        <div style="position: relative; height: 320px;">
+                            <canvas id="weeklyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-top: 1.5rem;">
                     <div class="card-header">
                         <h3 class="card-title"><i class="fas fa-wallet"></i> Phân bổ tài sản</h3>
@@ -196,7 +264,7 @@
                                     <div th:style="'width: 10px; height: 10px; border-radius: 50%; background: ' + ${w.colorCode ?: '#3b82f6'}"></div>
                                     <span style="font-weight: 600;" th:text="${w.name}">Ví</span>
                                 </div>
-                                <span th:text="${totalBalance > 0 ? #numbers.formatDecimal(w.balance * 100 / totalBalance, 0, 0) : 0} + '%'">0%</span>
+                                <span th:text="${totalBalance > 0 ? #numbers.formatDecimal(w.balance * 100 / totalBalance, 1, 0) : 0} + '%'">0%</span>
                             </div>
                             <div style="height: 0.4rem; background: #f1f5f9; border-radius: 999px; overflow: hidden;">
                                 <div th:style="'width: ' + ${totalBalance > 0 ? (w.balance * 100 / totalBalance) : 0} + '%; height: 100%; transition: width 0.5s ease; background: ' + ${w.colorCode ?: '#3b82f6'}"></div>
@@ -204,7 +272,7 @@
                             <div style="margin-top: 0.25rem; font-size: 0.75rem; text-align: right;" 
                                  th:class="${w.balance < 0 ? 'text-danger' : ''}"
                                  th:style="${w.balance >= 0 ? 'color: #64748b;' : ''}"
-                                 th:text="${#numbers.formatDecimal(w.balance, 0, 'COMMA', 0, 'POINT')} + ' đ'"></div>
+                                 th:text="${#numbers.formatDecimal(w.balance ?: 0, 1, 'COMMA', 0, 'POINT')} + ' đ'"></div>
                         </div>
                     </div>
                 </div>
@@ -239,7 +307,7 @@
                                     </td>
                                     <td th:text="${t.description}"></td>
                                     <td th:class="${t.type.name() == 'INCOME' ? 'badge-income' : (t.type.name() == 'TRANSFER' ? 'text-transfer' : 'badge-expense')}"
-                                        th:text="${t.type.name() == 'INCOME' ? '+' : (t.type.name() == 'TRANSFER' ? '→' : '-')} + ${#numbers.formatDecimal(t.amount, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+                                        th:text="${t.type.name() == 'INCOME' ? '+' : (t.type.name() == 'TRANSFER' ? '→' : '-')} + ${#numbers.formatDecimal(t.amount, 1, 'COMMA', 0, 'POINT')} + ' đ'"></td>
                                     <td style="text-align: center;">
                                         <th:block th:with="today=${currentDate ?: #temporals.createNow()}">
                                             <th:block th:if="${t.date.monthValue == today.monthValue and t.date.year == today.year}">
@@ -289,7 +357,7 @@
             <div class="modal-body" style="padding: 2rem;">
                 <div style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: #f8fafc; border-radius: 1.5rem; border: 1px solid #e2e8f0;">
                     <div style="font-size: 0.8125rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Tổng chi tiêu hôm qua</div>
-                    <div style="font-size: 2.25rem; font-weight: 800; color: #1e293b;" th:text="${#numbers.formatDecimal(morningReport.totalSpent, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</div>
+                    <div style="font-size: 2.25rem; font-weight: 800; color: #1e293b;" th:text="${morningReport.totalSpent != null ? #numbers.formatDecimal(morningReport.totalSpent, 1, 'COMMA', 0, 'POINT') : '0'} + ' đ'">0 đ</div>
                 </div>
 
                 <!-- Overspent Section -->
@@ -308,8 +376,8 @@
                             </div>
                         </div>
                         <div style="text-align: right;">
-                            <div style="font-weight: 800; color: #ef4444; font-size: 0.875rem;" th:text="'-' + ${#numbers.formatDecimal(item.spent, 0, 'COMMA', 0, 'POINT')}"></div>
-                            <div style="font-size: 0.75rem; color: #991b1b;" th:text="'Hạn mức: ' + ${#numbers.formatDecimal(item.limit, 0, 'COMMA', 0, 'POINT')}"></div>
+                            <div style="font-weight: 800; color: #ef4444; font-size: 0.875rem;" th:text="'-' + ${item.spent != null ? #numbers.formatDecimal(item.spent, 1, 'COMMA', 0, 'POINT') : '0'}"></div>
+                            <div style="font-size: 0.75rem; color: #991b1b;" th:text="'Hạn mức: ' + ${item.limit != null ? #numbers.formatDecimal(item.limit, 1, 'COMMA', 0, 'POINT') : '0'}"></div>
                         </div>
                     </div>
                 </div>

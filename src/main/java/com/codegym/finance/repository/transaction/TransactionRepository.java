@@ -50,6 +50,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
     Double sumByUserAndTypeAndDateBetween(@Param("user") User user, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.wallet = :wallet AND t.type = :type AND t.date >= :startDate AND t.date <= :endDate " +
+           "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
+    Double sumByUserAndWalletAndTypeAndDateBetween(@Param("user") User user, @Param("wallet") Wallet wallet, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.category = :category AND t.type = 'EXPENSE' AND t.date BETWEEN :startDate AND :endDate " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
     Double sumByUserAndCategoryAndDateBetween(@Param("user") User user, @Param("category") Category category, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

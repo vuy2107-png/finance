@@ -236,6 +236,17 @@ public class TransactionService implements ITransactionService {
     }
 
     @Override
+    public double getThisMonthExpenseForWallet(String username, Long walletId) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Wallet wallet = walletService.findById(walletId, username);
+        LocalDate now = userService.getEffectiveDate(username);
+        LocalDate startOfMonth = now.withDayOfMonth(1);
+        LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
+        Double result = transactionRepository.sumByUserAndWalletAndTypeAndDateBetween(user, wallet, TransactionType.EXPENSE, startOfMonth, endOfMonth);
+        return result != null ? result : 0.0;
+    }
+
+    @Override
     public double getBalance(String username) {
         return walletService.findByUsername(username).stream()
                 .mapToDouble(Wallet::getBalance)
@@ -385,8 +396,7 @@ public class TransactionService implements ITransactionService {
         LocalDate today = userService.getEffectiveDate(username);
         if (today == null) today = LocalDate.now();
         
-        LocalDate end = start.isAfter(today) ? null : (lastDayOfMonth.isBefore(today) ? lastDayOfMonth : today);
-        if (end == null) return new java.util.ArrayList<>();
+        LocalDate end = lastDayOfMonth;
 
         // Lấy tất cả chi tiêu trong tháng bằng 1 câu query duy nhất
         List<Object[]> monthlyExpenses = transactionRepository.getDailySpendingSum(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, start, end);
@@ -410,15 +420,40 @@ public class TransactionService implements ITransactionService {
             }
         }
 
+        // Tính toán thông tin cho gợi ý hạn mức tự động
+        boolean isAutoSuggest = Boolean.TRUE.equals(user.getAutoSuggestDailyLimit());
+        double currentTotalBalance = 0;
+        if (wallets != null) {
+            for (Wallet w : wallets) {
+                currentTotalBalance += w.getBalance();
+            }
+        }
+        
+        LocalDate queryEnd = today.isBefore(lastDayOfMonth) ? today : lastDayOfMonth;
+        double spentInPeriod = 0;
+        if (!start.isAfter(queryEnd)) {
+            Double sum = transactionRepository.sumByUserAndTypeAndDateBetween(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, start, queryEnd);
+            spentInPeriod = sum != null ? sum : 0.0;
+        }
+        double startingBalance = currentTotalBalance + spentInPeriod;
+        double accumulatedSpent = 0;
+
         List<Map<String, Object>> report = new java.util.ArrayList<>();
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             Double spent = expenseMap.getOrDefault(date, 0.0);
 
-            // Tính tổng hạn mức của tất cả ví tại ngày 'date'
+            // Tính hạn mức chi tiêu hàng ngày (Tự động gợi ý hoặc Tự đặt)
             double totalDailyLimitForDate = 0;
-            if (wallets != null) {
-                for (Wallet w : wallets) {
-                    totalDailyLimitForDate += budgetService.getDailyLimitForWallet(username, w.getId(), date);
+            if (isAutoSuggest) {
+                double remainingDays = lastDayOfMonth.getDayOfMonth() - date.getDayOfMonth() + 1;
+                double remainingBalance = startingBalance - accumulatedSpent;
+                totalDailyLimitForDate = remainingDays > 0 ? (remainingBalance / remainingDays) : 0.0;
+                if (totalDailyLimitForDate < 0) totalDailyLimitForDate = 0.0;
+            } else {
+                if (wallets != null) {
+                    for (Wallet w : wallets) {
+                        totalDailyLimitForDate += budgetService.getDailyLimitForWallet(username, w.getId(), date);
+                    }
                 }
             }
 
@@ -427,18 +462,24 @@ public class TransactionService implements ITransactionService {
             day.put("spent", spent);
             day.put("limit", totalDailyLimitForDate);
             
-            if (totalDailyLimitForDate > 0) {
-                double percent = (spent / totalDailyLimitForDate) * 100;
-                day.put("percent", percent);
-                day.put("status", percent > 100 ? "DANGER" : (percent > 80 ? "WARNING" : "SUCCESS"));
-            } else {
+            if (spent == 0) {
                 day.put("percent", 0.0);
                 day.put("status", "NONE");
+            } else {
+                if (totalDailyLimitForDate > 0) {
+                    double percent = (spent / totalDailyLimitForDate) * 100;
+                    day.put("percent", percent);
+                    day.put("status", percent > 100 ? "DANGER" : "SUCCESS");
+                } else {
+                    day.put("percent", 100.0);
+                    day.put("status", "DANGER");
+                }
             }
+            
+            accumulatedSpent += spent;
             report.add(day);
         }
         
-        java.util.Collections.reverse(report);
         return report;
     }
 }

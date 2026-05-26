@@ -45,15 +45,47 @@ public class SpendingDiaryController {
 
         List<Map<String, Object>> dailyReport = transactionService.getDailySpendingReport(username, month, year);
         
-        // Tính toán số ngày kỷ luật tốt để tránh lỗi render ở template
+        // Tính toán số ngày kỷ luật tốt
         long successDays = dailyReport.stream()
                 .filter(day -> "SUCCESS".equals(day.get("status")))
                 .count();
 
-        model.addAttribute("dailyReport", dailyReport);
+        // Tính toán số ngày thực tế có chi tiêu
+        long totalSpentDays = dailyReport.stream()
+                .filter(day -> day.get("spent") != null && ((Number) day.get("spent")).doubleValue() > 0)
+                .count();
+
+        // Xây dựng cấu trúc ô lịch (calendarCells) phẳng để Thymeleaf dễ dàng lặp qua
+        LocalDate firstDay = LocalDate.of(year, month, 1);
+        int startPadding = firstDay.getDayOfWeek().getValue() - 1; // Thứ 2 = 1, nên số ngày đệm = getValue() - 1
+        int totalDays = firstDay.lengthOfMonth();
+        int endPadding = (7 - ((startPadding + totalDays) % 7)) % 7;
+
+        List<Map<String, Object>> calendarCells = new java.util.ArrayList<>();
+        // Ô đệm ở đầu tháng
+        for (int i = 0; i < startPadding; i++) {
+            Map<String, Object> cell = new java.util.HashMap<>();
+            cell.put("isPadding", true);
+            calendarCells.add(cell);
+        }
+        // Các ngày thực tế trong tháng
+        for (Map<String, Object> day : dailyReport) {
+            day.put("isPadding", false);
+            calendarCells.add(day);
+        }
+        // Ô đệm ở cuối tháng
+        for (int i = 0; i < endPadding; i++) {
+            Map<String, Object> cell = new java.util.HashMap<>();
+            cell.put("isPadding", true);
+            calendarCells.add(cell);
+        }
+
+        model.addAttribute("calendarCells", calendarCells);
         model.addAttribute("successDays", successDays);
+        model.addAttribute("totalSpentDays", totalSpentDays);
         model.addAttribute("currentMonth", month);
         model.addAttribute("currentYear", year);
+        model.addAttribute("today", now);
         model.addAttribute("user", userService.findByUsername(username));
         
         return "user/diary/list";

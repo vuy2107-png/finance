@@ -44,4 +44,13 @@ public class UserProfileController {
         redirectAttributes.addFlashAttribute("message", "Cập nhật hồ sơ thành công!");
         return "redirect:/user/profile";
     }
+
+    @PostMapping("/api/toggle-suggest-limit")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> toggleSuggestLimit(Authentication auth, @RequestParam boolean enabled) {
+        User currentUser = userService.findByUsername(auth.getName());
+        currentUser.setAutoSuggestDailyLimit(enabled);
+        userService.save(currentUser);
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
 }
