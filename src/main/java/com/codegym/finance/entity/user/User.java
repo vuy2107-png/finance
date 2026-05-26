@@ -79,7 +79,7 @@ public class User {
     private Boolean hasSeenTour;
 
     @Column(name = "balance")
-    private Double balance;
+    private java.math.BigDecimal balance;
 
     @Column(name = "premium_plan")
     private String premiumPlan;
@@ -100,7 +100,7 @@ public class User {
         if (this.premium == null) this.premium = false;
         if (this.active == null) this.active = true;
         if (this.hasSeenTour == null) this.hasSeenTour = false;
-        if (this.balance == null) this.balance = 0.0; // Không tặng tiền ảo nữa để báo cáo chính xác
+        if (this.balance == null) this.balance = java.math.BigDecimal.ZERO; // Không tặng tiền ảo nữa để báo cáo chính xác
     }
 
     @PreUpdate

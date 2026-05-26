@@ -53,16 +53,16 @@ public class AdminStatsService {
         if (offlineUsers < 0) offlineUsers = 0;
         
         // Chỉ số tài chính (TIỀN THỰC)
-        Double totalUserBalances = userRepository.sumAllBalances();
-        if (totalUserBalances == null) totalUserBalances = 0.0;
+        java.math.BigDecimal totalUserBalances = userRepository.sumAllBalances();
+        if (totalUserBalances == null) totalUserBalances = java.math.BigDecimal.ZERO;
         
         // 1. DOANH THU THỰC (Từ việc bán Premium)
-        Double totalRevenue = transactionRepository.sumTransactionsByDescriptionLike("Premium");
-        if (totalRevenue == null) totalRevenue = 0.0;
+        java.math.BigDecimal totalRevenue = transactionRepository.sumTransactionsByDescriptionLike("Premium");
+        if (totalRevenue == null) totalRevenue = java.math.BigDecimal.ZERO;
 
         // 2. TỔNG NẠP THỰC TẾ (Từ các giao dịch nạp tiền)
-        Double totalDeposits = transactionRepository.sumTransactionsByDescriptionLike("SYSTEM_DEPOSIT_INFLOW");
-        if (totalDeposits == null) totalDeposits = 0.0;
+        java.math.BigDecimal totalDeposits = transactionRepository.sumTransactionsByDescriptionLike("SYSTEM_DEPOSIT_INFLOW");
+        if (totalDeposits == null) totalDeposits = java.math.BigDecimal.ZERO;
 
         stats.put("totalUsers", totalUsers);
         stats.put("premiumUsers", premiumUsers);

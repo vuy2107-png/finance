@@ -42,7 +42,7 @@ public class BudgetController {
         LocalDate now = LocalDate.now();
 
         List<Category> categories = categoryService.findByUserName(username);
-        Map<Long, Double> budgetMap = budgetService.getBudgetMapByMonth(username, now.getMonthValue(), now.getYear(), null);
+        Map<Long, java.math.BigDecimal> budgetMap = budgetService.getBudgetMapByMonth(username, now.getMonthValue(), now.getYear(), null);
 
         model.addAttribute("user", user);
         model.addAttribute("categories", categories);
@@ -56,17 +56,17 @@ public class BudgetController {
     @PostMapping("/save-ajax")
     @ResponseBody
     public ResponseEntity<Void> saveAjax(@RequestParam Long categoryId,
-                                        @RequestParam Double amount,
-                                        @RequestParam Integer month,
-                                        @RequestParam Integer year,
-                                        @RequestParam(required = false) Long walletId,
-                                        Authentication auth) {
+                                         @RequestParam java.math.BigDecimal amount,
+                                         @RequestParam Integer month,
+                                         @RequestParam Integer year,
+                                         @RequestParam(required = false) Long walletId,
+                                         Authentication auth) {
         budgetService.save(categoryId, amount, month, year, auth.getName(), walletId);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/update-daily-limit")
-    public String updateDailyLimit(@RequestParam Double dailyLimit, Authentication auth) {
+    public String updateDailyLimit(@RequestParam java.math.BigDecimal dailyLimit, Authentication auth) {
         // Since User entity doesn't have dailySpendingLimit, 
         // we can either add it to User or apply it to the first wallet by default.
         // For now, let's just use the WalletController's save-daily-limit logic 

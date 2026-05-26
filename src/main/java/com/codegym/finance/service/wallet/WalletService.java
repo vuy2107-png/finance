@@ -32,21 +32,28 @@ public class WalletService implements IWalletService {
     }
 
     @Override
-    public void delete(Long id) {
-        walletRepository.deleteById(id);
+    @Transactional
+    public void delete(Long id, String username) {
+        Wallet wallet = walletRepository.findByIdAndUserUsername(id, username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ví hoặc bạn không có quyền xóa ví này"));
+        walletRepository.delete(wallet);
     }
 
     @Override
     @Transactional
-    public void updateBalance(Long walletId, Double amount, boolean isIncome) {
+    public void updateBalance(Long walletId, java.math.BigDecimal amount, boolean isIncome) {
         Wallet wallet = walletRepository.findById(walletId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy ví với ID: " + walletId));
         
+        if (wallet.getBalance() == null) {
+            wallet.setBalance(java.math.BigDecimal.ZERO);
+        }
+
         if (isIncome) {
-            wallet.setBalance(wallet.getBalance() + amount);
+            wallet.setBalance(wallet.getBalance().add(amount));
         } else {
             // Cho phép số dư âm để theo dõi chi tiêu vượt mức
-            wallet.setBalance(wallet.getBalance() - amount);
+            wallet.setBalance(wallet.getBalance().subtract(amount));
         }
         walletRepository.save(wallet);
     }

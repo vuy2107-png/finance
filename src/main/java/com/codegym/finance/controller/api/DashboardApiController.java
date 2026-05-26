@@ -21,7 +21,7 @@ public class DashboardApiController {
     private ITransactionService transactionService;
 
     @GetMapping("/category-stats")
-    public ResponseEntity<Map<String, Double>> getCategoryStats(Authentication auth) {
+    public ResponseEntity<Map<String, java.math.BigDecimal>> getCategoryStats(Authentication auth) {
         String username = auth.getName();
         return ResponseEntity.ok(transactionService.getCategoryExpenses(username));
     }

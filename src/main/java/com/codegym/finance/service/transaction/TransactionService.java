@@ -6,11 +6,13 @@ import com.codegym.finance.entity.user.User;
 import com.codegym.finance.entity.transaction.TransactionType;
 import com.codegym.finance.entity.budget.Budget;
 
-
 import com.codegym.finance.repository.transaction.TransactionRepository;
 import com.codegym.finance.repository.user.UserRepository;
+import com.codegym.finance.repository.wallet.WalletRepository;
+import com.codegym.finance.repository.category.CategoryRepository;
 import com.codegym.finance.service.transaction.ITransactionService;
 import com.codegym.finance.service.wallet.IWalletService;
+import com.codegym.finance.service.user.IUserService;
 import com.codegym.finance.repository.budget.BudgetRepository;
 import com.codegym.finance.exception.SpendingLimitException;
 import com.codegym.finance.service.budget.IBudgetService;
@@ -40,14 +42,17 @@ public class TransactionService implements ITransactionService {
     private BudgetRepository budgetRepository;
 
     @Autowired
-    private com.codegym.finance.repository.wallet.WalletRepository walletRepository;
+    private WalletRepository walletRepository;
 
     @Autowired
-    private com.codegym.finance.service.user.IUserService userService;
+    private IUserService userService;
 
     @Autowired
     private IBudgetService budgetService;
 
+    /**
+     * Tìm danh sách tất cả các giao dịch của người dùng theo tên đăng nhập (Sắp xếp theo ngày giảm dần và ID giảm dần).
+     */
     @Override
     public List<Transaction> findByUserName(String username) {
         User user = userRepository.findByUsername(username)
@@ -55,6 +60,9 @@ public class TransactionService implements ITransactionService {
         return transactionRepository.findByUserOrderByDateDescIdDesc(user);
     }
     
+    /**
+     * Tìm danh sách tất cả các giao dịch của người dùng có hỗ trợ phân trang (Pageable).
+     */
     @Override
     public Page<Transaction> findByUserName(String username, Pageable pageable) {
         User user = userRepository.findByUsername(username)
@@ -62,22 +70,89 @@ public class TransactionService implements ITransactionService {
         return transactionRepository.findByUserOrderByDateDescIdDesc(user, pageable);
     }
 
+    /**
+     * Tạo mới và lưu trữ một giao dịch của người dùng, đồng thời cập nhật số dư ví tương ứng.
+     */
     @Override
     @Transactional
     public void save(Transaction transaction, String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Prevent future dates
-        LocalDate effectiveDate = userService.getEffectiveDate(username);
-        if (transaction.getDate().isAfter(effectiveDate)) {
-            throw new RuntimeException("Không thể tạo giao dịch cho ngày trong tương lai! (Hôm nay là " + 
-                effectiveDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
-        }
+        validateTransactionDate(transaction, username);
         
         transaction.setUser(user);
+        updateWalletBalances(transaction);
+        transactionRepository.save(transaction);
+    }
+
+    /**
+     * Tìm kiếm một giao dịch theo ID và xác nhận quyền sở hữu của người dùng.
+     */
+    @Override
+    public Transaction findById(Long id, String username) {
+        Transaction transaction = transactionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+        if (!transaction.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("Không có quyền truy cập");
+        }
+        return transaction;
+    }
+
+    /**
+     * Cập nhật thông tin giao dịch, hoàn tác số dư cũ trên ví cũ và áp dụng số dư mới lên ví mới.
+     */
+    @Override
+    @Transactional
+    public void update(Transaction transaction, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Update wallet balance FIRST to catch balance exception
+        validateTransactionDate(transaction, username);
+
+        Transaction old = findById(transaction.getId(), username);
+        
+        reverseWalletBalances(old);
+        
+        old.setAmount(transaction.getAmount());
+        old.setDescription(transaction.getDescription());
+        old.setDate(transaction.getDate());
+        old.setType(transaction.getType());
+        old.setCategory(transaction.getCategory());
+        old.setWallet(transaction.getWallet());
+        old.setToWallet(transaction.getToWallet());
+        old.setLocation(transaction.getLocation());
+        
+        transactionRepository.save(old);
+        updateWalletBalances(old);
+    }
+
+    /**
+     * Xóa một giao dịch theo ID, đồng thời hoàn tác (reverse) số dư ví tương ứng.
+     */
+    @Override
+    @Transactional
+    public void delete(Long id, String username) {
+        Transaction transaction = findById(id, username);
+        reverseWalletBalances(transaction);
+        transactionRepository.delete(transaction);
+    }
+
+    /**
+     * Hàm helper nội bộ: Kiểm tra xem ngày giao dịch có nằm trong tương lai so với ngày hiệu lực hệ thống hay không.
+     */
+    private void validateTransactionDate(Transaction transaction, String username) {
+        LocalDate effectiveDate = userService.getEffectiveDate(username);
+        if (transaction.getDate().isAfter(effectiveDate)) {
+            throw new RuntimeException("Không thể tạo hoặc sửa giao dịch cho ngày trong tương lai! (Hôm nay là " + 
+                effectiveDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
+        }
+    }
+
+    /**
+     * Hàm helper nội bộ: Cập nhật tăng/giảm số dư của các ví liên quan dựa trên loại giao dịch (THU NHẬP, CHI TIÊU, CHUYỂN KHOẢN).
+     */
+    private void updateWalletBalances(Transaction transaction) {
         if (transaction.getType() == TransactionType.TRANSFER) {
             if (transaction.getWallet() != null && transaction.getToWallet() != null) {
                 if (transaction.getWallet().getId().equals(transaction.getToWallet().getId())) {
@@ -90,82 +165,12 @@ public class TransactionService implements ITransactionService {
             boolean isIncome = transaction.getType() == TransactionType.INCOME;
             walletService.updateBalance(transaction.getWallet().getId(), transaction.getAmount(), isIncome);
         }
-
-        transactionRepository.save(transaction);
     }
 
-    @Override
-    public Transaction findById(Long id, String username) {
-        Transaction transaction = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
-        if (!transaction.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Không có quyền truy cập");
-        }
-        return transaction;
-    }
-
-    @Override
-    @Transactional
-    public void update(Transaction transaction, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        // Prevent future dates
-        LocalDate effectiveDate = userService.getEffectiveDate(username);
-        if (transaction.getDate().isAfter(effectiveDate)) {
-            throw new RuntimeException("Không thể sửa giao dịch thành ngày trong tương lai! (Hôm nay là " + 
-                effectiveDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
-        }
-
-        Transaction old = findById(transaction.getId(), username);
-        
-        // 1. Reverse old balance
-        if (old.getType() == TransactionType.TRANSFER) {
-            if (old.getWallet() != null && old.getToWallet() != null) {
-                walletService.updateBalance(old.getWallet().getId(), old.getAmount(), true); // Add back to source
-                walletService.updateBalance(old.getToWallet().getId(), old.getAmount(), false); // Deduct from destination
-            }
-        } else if (old.getWallet() != null) {
-            boolean oldWasIncome = old.getType() == TransactionType.INCOME;
-            walletService.updateBalance(old.getWallet().getId(), old.getAmount(), !oldWasIncome);
-        }
-
-        // 2. Update transaction data
-        old.setAmount(transaction.getAmount());
-        old.setDescription(transaction.getDescription());
-        old.setDate(transaction.getDate());
-        old.setType(transaction.getType());
-        old.setCategory(transaction.getCategory());
-        old.setWallet(transaction.getWallet());
-        old.setToWallet(transaction.getToWallet());
-        old.setLocation(transaction.getLocation());
-        
-        transactionRepository.save(old);
-
-        // Check Daily Limit - We only WARN
-        // Check Category Budget - We only WARN
-        
-        // 3. Apply new balance
-        if (old.getType() == TransactionType.TRANSFER) {
-            if (old.getWallet() != null && old.getToWallet() != null) {
-                if (old.getWallet().getId().equals(old.getToWallet().getId())) {
-                    throw new RuntimeException("Ví gửi và ví nhận không được trùng nhau");
-                }
-                walletService.updateBalance(old.getWallet().getId(), old.getAmount(), false); // Deduct from source
-                walletService.updateBalance(old.getToWallet().getId(), old.getAmount(), true);  // Add to destination
-            }
-        } else if (old.getWallet() != null) {
-            boolean isIncome = old.getType() == TransactionType.INCOME;
-            walletService.updateBalance(old.getWallet().getId(), old.getAmount(), isIncome);
-        }
-    }
-
-    @Override
-    @Transactional
-    public void delete(Long id, String username) {
-        Transaction transaction = findById(id, username);
-        
-        // Reverse balance before deleting
+    /**
+     * Hàm helper nội bộ: Hoàn trả lại số dư ví về trạng thái trước khi thực hiện giao dịch (được dùng khi sửa hoặc xóa giao dịch).
+     */
+    private void reverseWalletBalances(Transaction transaction) {
         if (transaction.getType() == TransactionType.TRANSFER) {
             if (transaction.getWallet() != null && transaction.getToWallet() != null) {
                 walletService.updateBalance(transaction.getWallet().getId(), transaction.getAmount(), true);
@@ -175,104 +180,142 @@ public class TransactionService implements ITransactionService {
             boolean wasIncome = transaction.getType() == TransactionType.INCOME;
             walletService.updateBalance(transaction.getWallet().getId(), transaction.getAmount(), !wasIncome);
         }
-        
-        transactionRepository.delete(transaction);
     }
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    /**
+     * Tính tổng số tiền thu nhập của người dùng.
+     */
     @Override
-    public double getTotalIncome(String username) {
+    public java.math.BigDecimal getTotalIncome(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
-        Double result = transactionRepository.sumByUserAndType(user, TransactionType.INCOME);
-        return result != null ? result : 0;
+        java.math.BigDecimal result = transactionRepository.sumByUserAndType(user, TransactionType.INCOME);
+        return result != null ? result : java.math.BigDecimal.ZERO;
     }
 
+    /**
+     * Tính tổng số tiền chi tiêu của người dùng.
+     */
     @Override
-    public double getTotalExpense(String username) {
+    public java.math.BigDecimal getTotalExpense(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
-        Double result = transactionRepository.sumByUserAndType(user, TransactionType.EXPENSE);
-        return result != null ? result : 0;
+        java.math.BigDecimal result = transactionRepository.sumByUserAndType(user, TransactionType.EXPENSE);
+        return result != null ? result : java.math.BigDecimal.ZERO;
     }
 
+    /**
+     * Tính tổng số tiền thu nhập trong ngày hôm nay của người dùng.
+     */
     @Override
-    public double getTodayIncome(String username) {
+    public java.math.BigDecimal getTodayIncome(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
-        Double result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.INCOME, userService.getEffectiveDate(username));
-        return result != null ? result : 0;
+        java.math.BigDecimal result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.INCOME, userService.getEffectiveDate(username));
+        return result != null ? result : java.math.BigDecimal.ZERO;
     }
 
+    /**
+     * Tính tổng số tiền chi tiêu trong ngày hôm nay của người dùng.
+     */
     @Override
-    public double getTodayExpense(String username) {
+    public java.math.BigDecimal getTodayExpense(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
-        Double result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.EXPENSE, userService.getEffectiveDate(username));
-        return result != null ? result : 0;
+        java.math.BigDecimal result = transactionRepository.sumByUserAndTypeAndDate(user, TransactionType.EXPENSE, userService.getEffectiveDate(username));
+        return result != null ? result : java.math.BigDecimal.ZERO;
     }
 
+    /**
+     * Tính tổng số tiền chi tiêu trong ngày hôm nay đối với một ví cụ thể.
+     */
     @Override
-    public double getTodayExpenseForWallet(String username, Long walletId) {
-        User user = userRepository.findByUsername(username).orElseThrow();
-        Wallet wallet = walletService.findById(walletId, username);
-        Double result = transactionRepository.sumByUserAndWalletAndTypeAndDate(user, wallet, TransactionType.EXPENSE, userService.getEffectiveDate(username));
-        return result != null ? result : 0;
-    }
-
-    @Override
-    public double getThisMonthIncome(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow();
-        LocalDate now = userService.getEffectiveDate(username);
-        LocalDate startOfMonth = now.withDayOfMonth(1);
-        LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
-        Double result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.INCOME, startOfMonth, endOfMonth);
-        return result != null ? result : 0;
-    }
-
-    @Override
-    public double getThisMonthExpense(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow();
-        LocalDate now = userService.getEffectiveDate(username);
-        LocalDate startOfMonth = now.withDayOfMonth(1);
-        LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
-        Double result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.EXPENSE, startOfMonth, endOfMonth);
-        return result != null ? result : 0;
-    }
-
-    @Override
-    public double getThisMonthExpenseForWallet(String username, Long walletId) {
+    public java.math.BigDecimal getTodayExpenseForWallet(String username, Long walletId) {
         User user = userRepository.findByUsername(username).orElseThrow();
         Wallet wallet = walletService.findById(walletId, username);
+        java.math.BigDecimal result = transactionRepository.sumByUserAndWalletAndTypeAndDate(user, wallet, TransactionType.EXPENSE, userService.getEffectiveDate(username));
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Tính tổng số tiền thu nhập trong tháng này của người dùng.
+     */
+    @Override
+    public java.math.BigDecimal getThisMonthIncome(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
         LocalDate now = userService.getEffectiveDate(username);
         LocalDate startOfMonth = now.withDayOfMonth(1);
         LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
-        Double result = transactionRepository.sumByUserAndWalletAndTypeAndDateBetween(user, wallet, TransactionType.EXPENSE, startOfMonth, endOfMonth);
-        return result != null ? result : 0.0;
+        java.math.BigDecimal result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.INCOME, startOfMonth, endOfMonth);
+        return result != null ? result : java.math.BigDecimal.ZERO;
     }
 
+    /**
+     * Tính tổng số tiền chi tiêu trong tháng này của người dùng.
+     */
     @Override
-    public double getBalance(String username) {
+    public java.math.BigDecimal getThisMonthExpense(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        LocalDate now = userService.getEffectiveDate(username);
+        LocalDate startOfMonth = now.withDayOfMonth(1);
+        LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
+        java.math.BigDecimal result = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.EXPENSE, startOfMonth, endOfMonth);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Tính tổng số tiền chi tiêu trong tháng này đối với một ví cụ thể.
+     */
+    @Override
+    public java.math.BigDecimal getThisMonthExpenseForWallet(String username, Long walletId) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Wallet wallet = walletService.findById(walletId, username);
+        LocalDate now = userService.getEffectiveDate(username);
+        LocalDate startOfMonth = now.withDayOfMonth(1);
+        LocalDate endOfMonth = now.withDayOfMonth(now.lengthOfMonth());
+        java.math.BigDecimal result = transactionRepository.sumByUserAndWalletAndTypeAndDateBetween(user, wallet, TransactionType.EXPENSE, startOfMonth, endOfMonth);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Tính tổng số dư của tất cả các ví thuộc sở hữu của người dùng.
+     */
+    @Override
+    public java.math.BigDecimal getBalance(String username) {
         return walletService.findByUsername(username).stream()
-                .mapToDouble(Wallet::getBalance)
-                .sum();
+                .map(Wallet::getBalance)
+                .filter(Objects::nonNull)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
 
+    /**
+     * Lấy tổng số lượng giao dịch của người dùng.
+     */
     @Override
     public int getTotalTransactions(String username) {
         return findByUserName(username).size();
     }
 
+    /**
+     * Thống kê tổng số tiền chi tiêu của từng danh mục trong tháng hiện tại.
+     */
     @Override
-    public Map<String, Double> getCategoryExpenses(String username) {
+    public Map<String, java.math.BigDecimal> getCategoryExpenses(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
         LocalDate now = userService.getEffectiveDate(username);
         LocalDate start = now.withDayOfMonth(1);
         LocalDate end = now.withDayOfMonth(now.lengthOfMonth());
 
         List<Object[]> results = transactionRepository.sumAmountByCategory(user, start, end);
-        Map<String, Double> chartData = new HashMap<>();
+        Map<String, java.math.BigDecimal> chartData = new HashMap<>();
         for (Object[] res : results) {
-            chartData.put(res[0] != null ? res[0].toString() : "Khác", (Double) res[1]);
+            chartData.put(res[0] != null ? res[0].toString() : "Khác", res[1] != null ? (java.math.BigDecimal) res[1] : java.math.BigDecimal.ZERO);
         }
         return chartData;
     }
 
+    /**
+     * Lấy xu hướng thu nhập và chi tiêu theo tháng trong vòng 6 tháng gần nhất.
+     */
     @Override
     public Map<String, Object> getMonthlyTrend(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -291,23 +334,23 @@ public class TransactionService implements ITransactionService {
         LocalDate startDate = monthStarts.get(0);
         List<Object[]> results = transactionRepository.getMonthlyStats(user, startDate);
         
-        Map<String, Double> incomeMap = new HashMap<>();
-        Map<String, Double> expenseMap = new HashMap<>();
+        Map<String, java.math.BigDecimal> incomeMap = new HashMap<>();
+        Map<String, java.math.BigDecimal> expenseMap = new HashMap<>();
 
         for (Object[] res : results) {
             String label = res[0] + "/" + res[1]; // month/year
             TransactionType type = (TransactionType) res[2];
-            double amount = (Double) res[3];
+            java.math.BigDecimal amount = res[3] != null ? (java.math.BigDecimal) res[3] : java.math.BigDecimal.ZERO;
             if (type == TransactionType.INCOME) incomeMap.put(label, amount);
             else if (type == TransactionType.EXPENSE) expenseMap.put(label, amount);
         }
 
-        List<Double> incomes = new ArrayList<>();
-        List<Double> expenses = new ArrayList<>();
+        List<java.math.BigDecimal> incomes = new ArrayList<>();
+        List<java.math.BigDecimal> expenses = new ArrayList<>();
 
         for (String label : labels) {
-            incomes.add(incomeMap.getOrDefault(label, 0.0));
-            expenses.add(expenseMap.getOrDefault(label, 0.0));
+            incomes.add(incomeMap.getOrDefault(label, java.math.BigDecimal.ZERO));
+            expenses.add(expenseMap.getOrDefault(label, java.math.BigDecimal.ZERO));
         }
 
         Map<String, Object> finalData = new HashMap<>();
@@ -317,6 +360,9 @@ public class TransactionService implements ITransactionService {
         return finalData;
     }
 
+    /**
+     * Lấy xu hướng thu nhập và chi tiêu hàng ngày trong vòng 7 ngày gần nhất.
+     */
     @Override
     public Map<String, Object> getLast7DaysTrend(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -325,11 +371,11 @@ public class TransactionService implements ITransactionService {
         List<Object[]> results = transactionRepository.getDailyStats(user, sevenDaysAgo);
         
         List<String> labels = new ArrayList<>();
-        List<Double> incomes = new ArrayList<>();
-        List<Double> expenses = new ArrayList<>();
+        List<java.math.BigDecimal> incomes = new ArrayList<>();
+        List<java.math.BigDecimal> expenses = new ArrayList<>();
 
-        Map<String, Double> incomeMap = new HashMap<>();
-        Map<String, Double> expenseMap = new HashMap<>();
+        Map<String, java.math.BigDecimal> incomeMap = new HashMap<>();
+        Map<String, java.math.BigDecimal> expenseMap = new HashMap<>();
 
         // Fill data
         for (Object[] res : results) {
@@ -337,16 +383,15 @@ public class TransactionService implements ITransactionService {
             if (!labels.contains(label)) labels.add(label);
 
             TransactionType type = (TransactionType) res[1];
-            double amount = (Double) res[2];
+            java.math.BigDecimal amount = res[2] != null ? (java.math.BigDecimal) res[2] : java.math.BigDecimal.ZERO;
             if (type == TransactionType.INCOME) incomeMap.put(label, amount);
             else expenseMap.put(label, amount);
         }
 
         // Ensure all 7 days are present in labels (optional but good for consistency)
-        // For simplicity, we'll just use the dates that have transactions or pad them
         for (String label : labels) {
-            incomes.add(incomeMap.getOrDefault(label, 0.0));
-            expenses.add(expenseMap.getOrDefault(label, 0.0));
+            incomes.add(incomeMap.getOrDefault(label, java.math.BigDecimal.ZERO));
+            expenses.add(expenseMap.getOrDefault(label, java.math.BigDecimal.ZERO));
         }
 
         Map<String, Object> finalData = new HashMap<>();
@@ -356,11 +401,61 @@ public class TransactionService implements ITransactionService {
         return finalData;
     }
 
+    /**
+     * Lấy tóm tắt chi tiêu theo danh mục (tương tự như getCategoryExpenses).
+     */
     @Override
-    public Map<String, Double> getCategorySummary(String username) {
+    public Map<String, java.math.BigDecimal> getCategorySummary(String username) {
         return getCategoryExpenses(username);
     }
 
+    /**
+     * Lấy tổng chi tiêu của một ví vào một ngày cụ thể.
+     */
+    @Override
+    public java.math.BigDecimal getSpentInWalletOnDate(String username, Long walletId, LocalDate date) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Wallet wallet = walletService.findById(walletId, username);
+        java.math.BigDecimal result = transactionRepository.sumByUserAndWalletAndTypeAndDate(user, wallet, TransactionType.EXPENSE, date);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Lấy tổng chi tiêu của một danh mục thuộc một ví cụ thể vào một ngày xác định.
+     */
+    @Override
+    public java.math.BigDecimal getSpentByCategoryAndWalletOnDate(String username, Long categoryId, Long walletId, LocalDate date) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Wallet wallet = walletService.findById(walletId, username);
+        Category category = categoryRepository.findById(categoryId).orElseThrow();
+        java.math.BigDecimal result = transactionRepository.sumByUserAndCategoryAndWalletAndDate(user, category, wallet, date);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Lấy tổng chi tiêu của một danh mục vào một ngày xác định (tất cả các ví).
+     */
+    @Override
+    public java.math.BigDecimal getSpentByCategoryOnDate(String username, Long categoryId, LocalDate date) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        Category category = categoryRepository.findById(categoryId).orElseThrow();
+        java.math.BigDecimal result = transactionRepository.sumByUserAndCategoryAndDate(user, category, date);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Lấy tổng số tiền giao dịch theo loại giao dịch và ngày xác định.
+     */
+    @Override
+    public java.math.BigDecimal getSpentOnDate(String username, TransactionType type, LocalDate date) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        java.math.BigDecimal result = transactionRepository.sumByUserAndTypeAndDate(user, type, date);
+        return result != null ? result : java.math.BigDecimal.ZERO;
+    }
+
+    /**
+     * Lấy lịch sử giao dịch liên quan đến một ví cụ thể của người dùng.
+     */
     @Override
     public List<Transaction> getWalletHistory(Long walletId, String username) {
         Wallet wallet = walletService.findById(walletId, username);
@@ -368,12 +463,18 @@ public class TransactionService implements ITransactionService {
         return transactionRepository.findByWalletHistory(user, wallet);
     }
 
+    /**
+     * Bộ lọc tìm kiếm và phân trang giao dịch theo ngày, ví, danh mục và từ khóa.
+     */
     @Override
     public Page<Transaction> filterTransactions(String username, LocalDate start, LocalDate end, Long walletId, Long categoryId, String keyword, Pageable pageable) {
         User user = userRepository.findByUsername(username).orElseThrow();
         return transactionRepository.filterTransactions(user, start, end, walletId, categoryId, keyword, pageable);
     }
 
+    /**
+     * Kiểm tra xem người dùng đã thực hiện giao dịch nạp tiền định kỳ trong tháng này chưa.
+     */
     @Override
     public boolean hasCompletedMonthlyFunding(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -383,24 +484,46 @@ public class TransactionService implements ITransactionService {
         return transactionRepository.countMonthlyFunding(user, start, end) > 0;
     }
 
+    /**
+     * Tạo báo cáo chi tiết về tình hình chi tiêu và hạn mức chi tiêu cho từng ngày trong tháng được chọn.
+     */
     @Override
     public List<Map<String, Object>> getDailySpendingReport(String username, int month, int year) {
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) return new java.util.ArrayList<>();
         
         List<Wallet> wallets = walletRepository.findByUserUsername(username);
-        // Hạn mức giờ đây sẽ được tính cho từng ngày trong vòng lặp bên dưới
-
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate lastDayOfMonth = start.withDayOfMonth(start.lengthOfMonth());
         LocalDate today = userService.getEffectiveDate(username);
         if (today == null) today = LocalDate.now();
-        
         LocalDate end = lastDayOfMonth;
 
-        // Lấy tất cả chi tiêu trong tháng bằng 1 câu query duy nhất
-        List<Object[]> monthlyExpenses = transactionRepository.getDailySpendingSum(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, start, end);
-        java.util.Map<LocalDate, Double> expenseMap = new java.util.HashMap<>();
+        List<Object[]> monthlyExpenses = transactionRepository.getDailySpendingSum(user, TransactionType.EXPENSE, start, end);
+        Map<LocalDate, java.math.BigDecimal> expenseMap = parseExpensesList(monthlyExpenses);
+
+        boolean isAutoSuggest = Boolean.TRUE.equals(user.getAutoSuggestDailyLimit());
+        java.math.BigDecimal startingBalance = computeStartingBalance(user, wallets, start, today, lastDayOfMonth);
+        java.math.BigDecimal accumulatedSpent = java.math.BigDecimal.ZERO;
+
+        List<Map<String, Object>> report = new java.util.ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            java.math.BigDecimal spent = expenseMap.getOrDefault(date, java.math.BigDecimal.ZERO);
+            java.math.BigDecimal totalDailyLimitForDate = determineDailyLimit(date, isAutoSuggest, startingBalance, accumulatedSpent, wallets, username, lastDayOfMonth);
+
+            Map<String, Object> day = createDailyReportEntry(date, spent, totalDailyLimitForDate);
+            accumulatedSpent = accumulatedSpent.add(spent);
+            report.add(day);
+        }
+        
+        return report;
+    }
+
+    /**
+     * Hàm helper nội bộ: Chuyển đổi dữ liệu thô từ truy vấn cơ sở dữ liệu thành bản đồ chi tiêu theo ngày.
+     */
+    private Map<LocalDate, java.math.BigDecimal> parseExpensesList(List<Object[]> monthlyExpenses) {
+        Map<LocalDate, java.math.BigDecimal> expenseMap = new java.util.HashMap<>();
         for (Object[] row : monthlyExpenses) {
             if (row != null && row.length >= 2 && row[0] != null) {
                 Object dateObj = row[0];
@@ -414,73 +537,90 @@ public class TransactionService implements ITransactionService {
                 }
                 
                 if (d != null) {
-                    Double val = row[1] != null ? ((Number) row[1]).doubleValue() : 0.0;
+                    java.math.BigDecimal val = row[1] != null ? (java.math.BigDecimal) row[1] : java.math.BigDecimal.ZERO;
                     expenseMap.put(d, val);
                 }
             }
         }
+        return expenseMap;
+    }
 
-        // Tính toán thông tin cho gợi ý hạn mức tự động
-        boolean isAutoSuggest = Boolean.TRUE.equals(user.getAutoSuggestDailyLimit());
-        double currentTotalBalance = 0;
+    /**
+     * Hàm helper nội bộ: Tính toán số dư ban đầu tại thời điểm bắt đầu tháng để phục vụ việc tính toán hạn mức tự động đề xuất.
+     */
+    private java.math.BigDecimal computeStartingBalance(User user, List<Wallet> wallets, LocalDate start, LocalDate today, LocalDate lastDayOfMonth) {
+        java.math.BigDecimal currentTotalBalance = java.math.BigDecimal.ZERO;
         if (wallets != null) {
             for (Wallet w : wallets) {
-                currentTotalBalance += w.getBalance();
+                if (w.getBalance() != null) {
+                    currentTotalBalance = currentTotalBalance.add(w.getBalance());
+                }
             }
         }
         
         LocalDate queryEnd = today.isBefore(lastDayOfMonth) ? today : lastDayOfMonth;
-        double spentInPeriod = 0;
+        java.math.BigDecimal spentInPeriod = java.math.BigDecimal.ZERO;
         if (!start.isAfter(queryEnd)) {
-            Double sum = transactionRepository.sumByUserAndTypeAndDateBetween(user, com.codegym.finance.entity.transaction.TransactionType.EXPENSE, start, queryEnd);
-            spentInPeriod = sum != null ? sum : 0.0;
+            java.math.BigDecimal sum = transactionRepository.sumByUserAndTypeAndDateBetween(user, TransactionType.EXPENSE, start, queryEnd);
+            if (sum != null) {
+                spentInPeriod = sum;
+            }
         }
-        double startingBalance = currentTotalBalance + spentInPeriod;
-        double accumulatedSpent = 0;
+        return currentTotalBalance.add(spentInPeriod);
+    }
 
-        List<Map<String, Object>> report = new java.util.ArrayList<>();
-        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-            Double spent = expenseMap.getOrDefault(date, 0.0);
-
-            // Tính hạn mức chi tiêu hàng ngày (Tự động gợi ý hoặc Tự đặt)
-            double totalDailyLimitForDate = 0;
-            if (isAutoSuggest) {
-                double remainingDays = lastDayOfMonth.getDayOfMonth() - date.getDayOfMonth() + 1;
-                double remainingBalance = startingBalance - accumulatedSpent;
-                totalDailyLimitForDate = remainingDays > 0 ? (remainingBalance / remainingDays) : 0.0;
-                if (totalDailyLimitForDate < 0) totalDailyLimitForDate = 0.0;
-            } else {
-                if (wallets != null) {
-                    for (Wallet w : wallets) {
-                        totalDailyLimitForDate += budgetService.getDailyLimitForWallet(username, w.getId(), date);
+    /**
+     * Hàm helper nội bộ: Xác định hạn mức chi tiêu cho một ngày cụ thể (tự động đề xuất hoặc lấy từ thiết lập hạn mức thủ công).
+     */
+    private java.math.BigDecimal determineDailyLimit(LocalDate date, boolean isAutoSuggest, java.math.BigDecimal startingBalance, java.math.BigDecimal accumulatedSpent, List<Wallet> wallets, String username, LocalDate lastDayOfMonth) {
+        java.math.BigDecimal totalDailyLimitForDate = java.math.BigDecimal.ZERO;
+        if (isAutoSuggest) {
+            double remainingDays = lastDayOfMonth.getDayOfMonth() - date.getDayOfMonth() + 1;
+            java.math.BigDecimal remainingBalance = startingBalance.subtract(accumulatedSpent);
+            if (remainingDays > 0) {
+                totalDailyLimitForDate = remainingBalance.divide(java.math.BigDecimal.valueOf(remainingDays), 2, java.math.RoundingMode.HALF_UP);
+            }
+            if (totalDailyLimitForDate.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                totalDailyLimitForDate = java.math.BigDecimal.ZERO;
+            }
+        } else {
+            if (wallets != null) {
+                for (Wallet w : wallets) {
+                    java.math.BigDecimal limitVal = budgetService.getDailyLimitForWallet(username, w.getId(), date);
+                    if (limitVal != null) {
+                        totalDailyLimitForDate = totalDailyLimitForDate.add(limitVal);
                     }
                 }
             }
-
-            Map<String, Object> day = new java.util.HashMap<>();
-            day.put("date", date);
-            day.put("spent", spent);
-            day.put("limit", totalDailyLimitForDate);
-            
-            if (spent == 0) {
-                day.put("percent", 0.0);
-                day.put("status", "NONE");
-            } else {
-                if (totalDailyLimitForDate > 0) {
-                    double percent = (spent / totalDailyLimitForDate) * 100;
-                    day.put("percent", percent);
-                    day.put("status", percent > 100 ? "DANGER" : "SUCCESS");
-                } else {
-                    day.put("percent", 100.0);
-                    day.put("status", "DANGER");
-                }
-            }
-            
-            accumulatedSpent += spent;
-            report.add(day);
         }
+        return totalDailyLimitForDate;
+    }
+
+    /**
+     * Hàm helper nội bộ: Đóng gói thông tin chi tiêu, hạn mức và trạng thái vượt hạn mức của ngày thành đối tượng Map.
+     */
+    private Map<String, Object> createDailyReportEntry(LocalDate date, java.math.BigDecimal spent, java.math.BigDecimal limit) {
+        Map<String, Object> day = new java.util.HashMap<>();
+        day.put("date", date);
+        day.put("spent", spent);
+        day.put("limit", limit);
         
-        return report;
+        if (spent.compareTo(java.math.BigDecimal.ZERO) == 0) {
+            day.put("percent", 0.0);
+            day.put("status", "NONE");
+        } else {
+            if (limit.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                double percent = spent.multiply(java.math.BigDecimal.valueOf(100))
+                        .divide(limit, 2, java.math.RoundingMode.HALF_UP)
+                        .doubleValue();
+                day.put("percent", percent);
+                day.put("status", percent > 100 ? "DANGER" : "SUCCESS");
+            } else {
+                day.put("percent", 100.0);
+                day.put("status", "DANGER");
+            }
+        }
+        return day;
     }
 }
 

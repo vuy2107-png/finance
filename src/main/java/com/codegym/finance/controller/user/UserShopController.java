@@ -1,5 +1,4 @@
 package com.codegym.finance.controller.user;
-import com.codegym.finance.repository.icon.UserIconRepository;
 import com.codegym.finance.entity.icon.UserIcon;
 
 import com.codegym.finance.entity.icon.Icon;
@@ -25,9 +24,6 @@ public class UserShopController {
     @Autowired
     private IUserService userService;
 
-    @Autowired
-    private com.codegym.finance.repository.icon.UserIconRepository userIconRepository;
-
     @GetMapping
     public String list(Authentication auth, Model model) {
         User user = userService.findByUsername(auth.getName());
@@ -49,26 +45,26 @@ public class UserShopController {
         }
 
         // Kiểm tra xem đã sở hữu chưa
-        if (userIconRepository.existsByUserUsernameAndIconId(auth.getName(), id)) {
+        if (iconService.existsByUserUsernameAndIconId(auth.getName(), id)) {
             redirectAttributes.addFlashAttribute("error", "Bạn đã sở hữu icon này rồi!");
             return "redirect:/user/shop";
         }
 
-        double currentBalance = (user.getBalance() != null) ? user.getBalance() : 0.0;
-        if (currentBalance < icon.getPrice()) {
+        java.math.BigDecimal currentBalance = (user.getBalance() != null) ? user.getBalance() : java.math.BigDecimal.ZERO;
+        if (currentBalance.compareTo(icon.getPrice()) < 0) {
             redirectAttributes.addFlashAttribute("error", "Số dư của bạn không đủ. Vui lòng nạp thêm!");
             return "redirect:/user/deposit";
         }
 
         // Thực hiện trừ tiền
-        user.setBalance(currentBalance - icon.getPrice());
+        user.setBalance(currentBalance.subtract(icon.getPrice()));
         userService.save(user);
 
         // Lưu vào kho đồ (UserIcon)
         com.codegym.finance.entity.icon.UserIcon userIcon = new com.codegym.finance.entity.icon.UserIcon();
         userIcon.setUser(user);
         userIcon.setIcon(icon);
-        userIconRepository.save(userIcon);
+        iconService.saveUserIcon(userIcon);
         
         redirectAttributes.addFlashAttribute("message", "Chúc mừng! Bạn đã mua thành công Icon '" + icon.getName() + "'.");
         return "redirect:/user/shop";

@@ -25,31 +25,36 @@ public interface ITransactionService {
     // 🔥 DELETE
     void delete(Long id, String username);
 
-    double getTotalIncome(String username);
+    java.math.BigDecimal getTotalIncome(String username);
 
-    double getTotalExpense(String username);
+    java.math.BigDecimal getTotalExpense(String username);
 
-    double getTodayIncome(String username);
+    java.math.BigDecimal getTodayIncome(String username);
 
-    double getTodayExpense(String username);
-    double getTodayExpenseForWallet(String username, Long walletId);
-    double getThisMonthExpenseForWallet(String username, Long walletId);
+    java.math.BigDecimal getTodayExpense(String username);
+    java.math.BigDecimal getTodayExpenseForWallet(String username, Long walletId);
+    java.math.BigDecimal getThisMonthExpenseForWallet(String username, Long walletId);
 
-    double getThisMonthIncome(String username);
+    java.math.BigDecimal getThisMonthIncome(String username);
 
-    double getThisMonthExpense(String username);
+    java.math.BigDecimal getThisMonthExpense(String username);
 
-    double getBalance(String username);
+    java.math.BigDecimal getBalance(String username);
 
     int getTotalTransactions(String username);
 
-    Map<String, Double> getCategoryExpenses(String username);
+    Map<String, java.math.BigDecimal> getCategoryExpenses(String username);
 
     Map<String, Object> getMonthlyTrend(String username);
 
     Map<String, Object> getLast7DaysTrend(String username);
 
-    Map<String, Double> getCategorySummary(String username);
+    Map<String, java.math.BigDecimal> getCategorySummary(String username);
+
+    java.math.BigDecimal getSpentInWalletOnDate(String username, Long walletId, java.time.LocalDate date);
+    java.math.BigDecimal getSpentByCategoryAndWalletOnDate(String username, Long categoryId, Long walletId, java.time.LocalDate date);
+    java.math.BigDecimal getSpentByCategoryOnDate(String username, Long categoryId, java.time.LocalDate date);
+    java.math.BigDecimal getSpentOnDate(String username, com.codegym.finance.entity.transaction.TransactionType type, java.time.LocalDate date);
 
     List<Transaction> getWalletHistory(Long walletId, String username);
 

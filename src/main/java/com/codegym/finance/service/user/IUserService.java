@@ -16,4 +16,5 @@ public interface IUserService {
     User findById(Long userId);
     java.time.LocalDate getEffectiveDate(String username);
     void updateTestDate(String username, java.time.LocalDate testDate);
+    List<User> findRecentUsers();
 }

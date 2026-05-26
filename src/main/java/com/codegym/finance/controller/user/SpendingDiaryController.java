@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.codegym.finance.entity.transaction.Transaction;
-import com.codegym.finance.repository.transaction.TransactionRepository;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.data.domain.PageRequest;
 
@@ -29,9 +28,6 @@ public class SpendingDiaryController {
 
     @Autowired
     private IUserService userService;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
 
     @GetMapping
     public String list(@RequestParam(required = false) Integer month,
@@ -99,9 +95,8 @@ public class SpendingDiaryController {
         String username = auth.getName();
         LocalDate localDate = LocalDate.parse(date);
         
-        User user = userService.findByUsername(username);
-        List<Transaction> list = transactionRepository.filterTransactions(
-                user, localDate, localDate, null, null, null, PageRequest.of(0, 100)).getContent();
+        List<Transaction> list = transactionService.filterTransactions(
+                username, localDate, localDate, null, null, null, PageRequest.of(0, 100)).getContent();
                 
         List<Map<String, Object>> result = new java.util.ArrayList<>();
         for (Transaction t : list) {

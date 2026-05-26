@@ -40,8 +40,8 @@ public class PremiumController {
     @PostMapping("/buy")
     public String buyPremium(@RequestParam String plan, Authentication auth, RedirectAttributes ra) {
         User user = userService.findByUsername(auth.getName());
-        double currentBalance = (user.getBalance() != null) ? user.getBalance() : 0.0;
-        double price = 0;
+        java.math.BigDecimal currentBalance = (user.getBalance() != null) ? user.getBalance() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal price = java.math.BigDecimal.ZERO;
         String planName = "";
         
         LocalDateTime now = LocalDateTime.now();
@@ -50,17 +50,17 @@ public class PremiumController {
 
         switch (plan) {
             case "weekly":
-                price = 29000;
+                price = java.math.BigDecimal.valueOf(29000);
                 planName = "Gói Starter (Tuần)";
                 expiryDate = expiryDate.plusDays(7);
                 break;
             case "monthly":
-                price = 99000;
+                price = java.math.BigDecimal.valueOf(99000);
                 planName = "Gói Pro (Tháng)";
                 expiryDate = expiryDate.plusDays(30);
                 break;
             case "yearly":
-                price = 799000;
+                price = java.math.BigDecimal.valueOf(799000);
                 planName = "Gói Elite (Năm)";
                 expiryDate = expiryDate.plusYears(1);
                 break;
@@ -69,13 +69,13 @@ public class PremiumController {
                 return "redirect:/user/premium";
         }
 
-        if (currentBalance < price) {
+        if (currentBalance.compareTo(price) < 0) {
             ra.addFlashAttribute("error", "Số dư không đủ để mua " + planName + ". Vui lòng nạp thêm tiền!");
             return "redirect:/user/deposit";
         }
 
         // Trừ tiền và kích hoạt Premium
-        user.setBalance(currentBalance - price);
+        user.setBalance(currentBalance.subtract(price));
         user.setPremium(true);
         user.setPremiumPlan(plan);
         user.setExpiryDate(expiryDate);

@@ -7,8 +7,8 @@ public interface IWalletService {
     List<Wallet> findByUsername(String username);
     Wallet findById(Long id, String username);
     void save(Wallet wallet);
-    void delete(Long id);
-    void updateBalance(Long walletId, Double amount, boolean isIncome);
+    void delete(Long id, String username);
+    void updateBalance(Long walletId, java.math.BigDecimal amount, boolean isIncome);
     long countByUsername(String username);
     org.springframework.data.domain.Page<Wallet> searchWallets(String username, String keyword, org.springframework.data.domain.Pageable pageable);
 }

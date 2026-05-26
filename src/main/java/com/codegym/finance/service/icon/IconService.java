@@ -2,6 +2,8 @@ package com.codegym.finance.service.icon;
 
 import com.codegym.finance.entity.icon.Icon;
 import com.codegym.finance.repository.icon.IconRepository;
+import com.codegym.finance.entity.icon.UserIcon;
+import com.codegym.finance.repository.icon.UserIconRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -11,6 +13,9 @@ public class IconService implements IIconService {
 
     @Autowired
     private IconRepository iconRepository;
+
+    @Autowired
+    private UserIconRepository userIconRepository;
 
     @Override
     public List<Icon> findAll() {
@@ -45,5 +50,20 @@ public class IconService implements IIconService {
             icon.setActive(!icon.getActive());
             iconRepository.save(icon);
         }
+    }
+
+    @Override
+    public List<UserIcon> findUserIconsByUsername(String username) {
+        return userIconRepository.findByUserUsername(username);
+    }
+
+    @Override
+    public boolean existsByUserUsernameAndIconId(String username, Long iconId) {
+        return userIconRepository.existsByUserUsernameAndIconId(username, iconId);
+    }
+
+    @Override
+    public void saveUserIcon(UserIcon userIcon) {
+        userIconRepository.save(userIcon);
     }
 }

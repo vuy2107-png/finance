@@ -108,4 +108,9 @@ public class UserService implements IUserService {
             userRepository.save(user);
         }
     }
+
+    @Override
+    public List<User> findRecentUsers() {
+        return userRepository.findTop5ByOrderByCreatedAtDesc();
+    }
 }

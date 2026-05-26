@@ -28,11 +28,11 @@ public class SavingsGoal {
 
     @NotNull(message = "Số tiền mục tiêu không được để trống")
     @Column(name = "target_amount", nullable = false)
-    private Double targetAmount;
+    private java.math.BigDecimal targetAmount;
 
     @Builder.Default
     @Column(name = "current_amount", nullable = false)
-    private Double currentAmount = 0.0;
+    private java.math.BigDecimal currentAmount = java.math.BigDecimal.ZERO;
 
     @Column(name = "target_date")
     private LocalDate targetDate;
@@ -45,6 +45,7 @@ public class SavingsGoal {
     @Column(name = "color_code")
     private String colorCode;
 
+    @Column(name = "icon")
     private String icon;
 
     @ManyToOne
@@ -53,8 +54,11 @@ public class SavingsGoal {
 
     @Transient
     public Double getProgressPercentage() {
-        if (targetAmount == null || targetAmount <= 0) return 0.0;
-        double pct = (currentAmount * 100.0) / targetAmount;
+        if (targetAmount == null || targetAmount.compareTo(java.math.BigDecimal.ZERO) <= 0) return 0.0;
+        if (currentAmount == null) return 0.0;
+        double pct = currentAmount.multiply(java.math.BigDecimal.valueOf(100))
+                .divide(targetAmount, 2, java.math.RoundingMode.HALF_UP)
+                .doubleValue();
         return pct > 100.0 ? 100.0 : pct;
     }
 }

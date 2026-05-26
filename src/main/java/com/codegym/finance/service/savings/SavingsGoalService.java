@@ -58,7 +58,7 @@ public class SavingsGoalService implements ISavingsGoalService {
         goal.setUser(user);
         
         // Auto update status if somehow current >= target upon creation
-        if (goal.getCurrentAmount() != null && goal.getCurrentAmount() >= goal.getTargetAmount()) {
+        if (goal.getCurrentAmount() != null && goal.getTargetAmount() != null && goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
             goal.setStatus(GoalStatus.ACHIEVED);
         } else {
             goal.setStatus(GoalStatus.IN_PROGRESS);
@@ -78,7 +78,7 @@ public class SavingsGoalService implements ISavingsGoalService {
         existing.setColorCode(goal.getColorCode());
         existing.setIcon(goal.getIcon());
         
-        if (existing.getCurrentAmount() >= existing.getTargetAmount()) {
+        if (existing.getCurrentAmount() != null && existing.getTargetAmount() != null && existing.getCurrentAmount().compareTo(existing.getTargetAmount()) >= 0) {
             existing.setStatus(GoalStatus.ACHIEVED);
         } else {
             existing.setStatus(GoalStatus.IN_PROGRESS);
@@ -96,11 +96,11 @@ public class SavingsGoalService implements ISavingsGoalService {
 
     @Override
     @Transactional
-    public void addFunds(Long goalId, Double amount, Long walletId, String username) {
+    public void addFunds(Long goalId, java.math.BigDecimal amount, Long walletId, String username) {
         SavingsGoal goal = findById(goalId, username);
         Wallet wallet = walletService.findById(walletId, username);
         
-        if (amount <= 0) {
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Số tiền nạp phải lớn hơn 0");
         }
 
@@ -115,11 +115,14 @@ public class SavingsGoalService implements ISavingsGoalService {
         transactionService.save(transaction, username);
 
         // 2. Cộng tiền vào quỹ
-        double newAmount = goal.getCurrentAmount() + amount;
+        if (goal.getCurrentAmount() == null) {
+            goal.setCurrentAmount(java.math.BigDecimal.ZERO);
+        }
+        java.math.BigDecimal newAmount = goal.getCurrentAmount().add(amount);
         goal.setCurrentAmount(newAmount);
         
         // 3. Kiểm tra hoàn thành mục tiêu
-        if (newAmount >= goal.getTargetAmount()) {
+        if (goal.getTargetAmount() != null && newAmount.compareTo(goal.getTargetAmount()) >= 0) {
             goal.setStatus(GoalStatus.ACHIEVED);
         }
         

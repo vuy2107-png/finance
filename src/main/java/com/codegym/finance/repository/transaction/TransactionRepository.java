@@ -37,36 +37,36 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // ================= DASHBOARD =================
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndType(@Param("user") User user, @Param("type") TransactionType type);
+    java.math.BigDecimal sumByUserAndType(@Param("user") User user, @Param("type") TransactionType type);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type AND t.date = :date " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndTypeAndDate(@Param("user") User user, @Param("type") TransactionType type, @Param("date") LocalDate date);
+    java.math.BigDecimal sumByUserAndTypeAndDate(@Param("user") User user, @Param("type") TransactionType type, @Param("date") LocalDate date);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.wallet = :wallet AND t.type = :type AND t.date = :date")
-    Double sumByUserAndWalletAndTypeAndDate(@Param("user") User user, @Param("wallet") Wallet wallet, @Param("type") TransactionType type, @Param("date") LocalDate date);
+    java.math.BigDecimal sumByUserAndWalletAndTypeAndDate(@Param("user") User user, @Param("wallet") Wallet wallet, @Param("type") TransactionType type, @Param("date") LocalDate date);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type AND t.date >= :startDate AND t.date <= :endDate " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndTypeAndDateBetween(@Param("user") User user, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    java.math.BigDecimal sumByUserAndTypeAndDateBetween(@Param("user") User user, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.wallet = :wallet AND t.type = :type AND t.date >= :startDate AND t.date <= :endDate " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndWalletAndTypeAndDateBetween(@Param("user") User user, @Param("wallet") Wallet wallet, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    java.math.BigDecimal sumByUserAndWalletAndTypeAndDateBetween(@Param("user") User user, @Param("wallet") Wallet wallet, @Param("type") TransactionType type, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.category = :category AND t.type = 'EXPENSE' AND t.date BETWEEN :startDate AND :endDate " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndCategoryAndDateBetween(@Param("user") User user, @Param("category") Category category, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    java.math.BigDecimal sumByUserAndCategoryAndDateBetween(@Param("user") User user, @Param("category") Category category, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.category = :category AND (t.wallet = :wallet) AND t.type = 'EXPENSE' AND t.date BETWEEN :startDate AND :endDate")
-    Double sumByUserAndCategoryAndWalletAndDateBetween(@Param("user") User user, @Param("category") Category category, @Param("wallet") Wallet wallet, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    java.math.BigDecimal sumByUserAndCategoryAndWalletAndDateBetween(@Param("user") User user, @Param("category") Category category, @Param("wallet") Wallet wallet, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.category = :category AND t.type = 'EXPENSE' AND t.date = :date " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%'")
-    Double sumByUserAndCategoryAndDate(@Param("user") User user, @Param("category") Category category, @Param("date") LocalDate date);
+    java.math.BigDecimal sumByUserAndCategoryAndDate(@Param("user") User user, @Param("category") Category category, @Param("date") LocalDate date);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.category = :category AND t.wallet = :wallet AND t.type = 'EXPENSE' AND t.date = :date")
-    Double sumByUserAndCategoryAndWalletAndDate(@Param("user") User user, @Param("category") Category category, @Param("wallet") Wallet wallet, @Param("date") LocalDate date);
+    java.math.BigDecimal sumByUserAndCategoryAndWalletAndDate(@Param("user") User user, @Param("category") Category category, @Param("wallet") Wallet wallet, @Param("date") LocalDate date);
 
     // ================= FILTER =================
     List<Transaction> findByUserAndDate(User user, LocalDate date);
@@ -131,7 +131,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     // ================= ADMIN STATS =================
     @Query("SELECT SUM(t.amount) FROM Transaction t")
-    Double sumAllTransactions();
+    java.math.BigDecimal sumAllTransactions();
 
     @Query("SELECT COUNT(t) FROM Transaction t")
     long countAllTransactions();
@@ -147,7 +147,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     long countAllByDate(LocalDate date);
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE UPPER(t.description) LIKE UPPER(CONCAT('%', :keyword, '%'))")
-    Double sumTransactionsByDescriptionLike(@Param("keyword") String keyword);
+    java.math.BigDecimal sumTransactionsByDescriptionLike(@Param("keyword") String keyword);
 
     @Query("SELECT t.date, SUM(t.amount) FROM Transaction t WHERE t.user = :user AND t.type = :type AND t.date BETWEEN :start AND :end " +
            "AND t.description NOT LIKE '%SYSTEM_DEPOSIT_INFLOW%' AND t.description NOT LIKE '%Premium%' " +

@@ -12,5 +12,5 @@ public class BudgetAlertDTO {
     private String message;
     private String type; // WARNING (80%), DANGER (100%)
     private Double percentage;
-    private Double spentAmount;
+    private java.math.BigDecimal spentAmount;
 }

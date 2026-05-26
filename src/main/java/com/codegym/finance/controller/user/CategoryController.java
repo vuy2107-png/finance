@@ -7,7 +7,7 @@ import com.codegym.finance.entity.category.Category;
 import com.codegym.finance.entity.transaction.TransactionType;
 import com.codegym.finance.entity.icon.UserIcon;
 import com.codegym.finance.service.category.ICategoryService;
-import com.codegym.finance.repository.icon.UserIconRepository;
+import com.codegym.finance.service.icon.IIconService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -26,7 +26,7 @@ public class CategoryController {
     private ICategoryService categoryService;
 
     @Autowired
-    private UserIconRepository userIconRepository;
+    private IIconService iconService;
 
     @GetMapping
     public String list(Model model, Authentication auth) {
@@ -35,7 +35,7 @@ public class CategoryController {
         model.addAttribute("types", TransactionType.values());
         
         // Lấy danh sách icon đã sở hữu
-        List<UserIcon> userIcons = userIconRepository.findByUserUsername(auth.getName());
+        List<UserIcon> userIcons = iconService.findUserIconsByUsername(auth.getName());
         List<String> ownedIcons = userIcons.stream()
                 .map(ui -> ui.getIcon().getUrl())
                 .collect(Collectors.toList());

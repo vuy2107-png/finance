@@ -22,7 +22,7 @@ public class Icon {
     private String url; // Đường dẫn ảnh icon
 
     @Column(nullable = false)
-    private Double price; // Giá bán (Ví dụ: 10 xu hoặc 10.000đ)
+    private java.math.BigDecimal price; // Giá bán (Ví dụ: 10 xu hoặc 10.000đ)
 
     private String description;
     

@@ -10,5 +10,5 @@ public interface ISavingsGoalService {
     void save(SavingsGoal goal, String username);
     void update(SavingsGoal goal, String username);
     void delete(Long id, String username);
-    void addFunds(Long goalId, Double amount, Long walletId, String username);
+    void addFunds(Long goalId, java.math.BigDecimal amount, Long walletId, String username);
 }

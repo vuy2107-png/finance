@@ -29,7 +29,7 @@ public class Wallet {
     @NotNull(message = "Số dư không được để trống")
     @Column(nullable = false)
     @Builder.Default
-    private Double balance = 0.0;
+    private java.math.BigDecimal balance = java.math.BigDecimal.ZERO;
 
     private String icon;
 
@@ -37,7 +37,7 @@ public class Wallet {
     private String colorCode;
 
     @Column(name = "daily_spending_limit")
-    private Double dailySpendingLimit;
+    private java.math.BigDecimal dailySpendingLimit;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
@@ -53,7 +53,7 @@ public class Wallet {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        if (balance == null) balance = 0.0;
+        if (balance == null) balance = java.math.BigDecimal.ZERO;
     }
 
     @PreUpdate

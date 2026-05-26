@@ -2,6 +2,48 @@
  * Finance Pro - Common JavaScript Utilities
  */
 
+// Intercept all fetch requests globally to inject CSRF header for write requests (POST, PUT, DELETE, PATCH)
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(resource, init) {
+        let options = init || {};
+        const method = (options.method || 'GET').toUpperCase();
+        
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+            const tokenMeta = document.querySelector('meta[name="_csrf"]');
+            const headerMeta = document.querySelector('meta[name="_csrf_header"]');
+            
+            if (tokenMeta && headerMeta) {
+                const token = tokenMeta.content;
+                const headerName = headerMeta.content;
+                
+                options.headers = options.headers || {};
+                
+                if (options.headers instanceof Headers) {
+                    if (!options.headers.has(headerName)) {
+                        options.headers.append(headerName, token);
+                    }
+                } else if (Array.isArray(options.headers)) {
+                    const exists = options.headers.some(h => {
+                        if (Array.isArray(h) && h.length >= 2) {
+                            return h[0].toLowerCase() === headerName.toLowerCase();
+                        }
+                        return false;
+                    });
+                    if (!exists) {
+                        options.headers.push([headerName, token]);
+                    }
+                } else {
+                    if (!options.headers[headerName]) {
+                        options.headers[headerName] = token;
+                    }
+                }
+            }
+        }
+        return originalFetch.call(this, resource, options);
+    };
+})();
+
 function openModal(id) {
     console.log("Opening modal:", id);
     const modal = document.getElementById(id);

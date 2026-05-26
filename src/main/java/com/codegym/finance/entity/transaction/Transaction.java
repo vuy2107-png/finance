@@ -24,7 +24,7 @@ public class Transaction {
 
     @NotNull(message = "Số tiền không được để trống")
     @Positive(message = "Số tiền phải lớn hơn 0")
-    private Double amount;
+    private java.math.BigDecimal amount;
 
     private String description;
 

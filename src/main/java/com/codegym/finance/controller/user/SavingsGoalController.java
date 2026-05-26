@@ -58,7 +58,7 @@ public class SavingsGoalController {
 
     @PostMapping("/add-funds")
     public String addFunds(@RequestParam("goalId") Long goalId,
-                           @RequestParam("amount") Double amount,
+                           @RequestParam("amount") java.math.BigDecimal amount,
                            @RequestParam("walletId") Long walletId,
                            Authentication auth,
                            RedirectAttributes redirectAttributes) {

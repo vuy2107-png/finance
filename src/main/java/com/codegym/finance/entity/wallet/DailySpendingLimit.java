@@ -21,7 +21,7 @@ public class DailySpendingLimit {
     private Long id;
 
     @Column(nullable = false)
-    private Double amount;
+    private java.math.BigDecimal amount;
 
     @Column(nullable = false)
     private LocalDate date;

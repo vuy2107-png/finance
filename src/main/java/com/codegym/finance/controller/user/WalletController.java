@@ -128,12 +128,12 @@ public class WalletController {
             }
         }
         
-        double initialBalance = wallet.getBalance() != null ? wallet.getBalance() : 0.0;
-        wallet.setBalance(0.0); // Reset để Transaction service cập nhật lại
+        java.math.BigDecimal initialBalance = wallet.getBalance() != null ? wallet.getBalance() : java.math.BigDecimal.ZERO;
+        wallet.setBalance(java.math.BigDecimal.ZERO); // Reset để Transaction service cập nhật lại
         wallet.setUser(user);
         walletService.save(wallet);
 
-        if (initialBalance > 0) {
+        if (initialBalance.compareTo(java.math.BigDecimal.ZERO) > 0) {
             Transaction t = new Transaction();
             t.setAmount(initialBalance);
             t.setType(TransactionType.INCOME);
@@ -148,9 +148,13 @@ public class WalletController {
     }
 
     @PostMapping("/delete/{id}")
-    public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        walletService.delete(id);
-        redirectAttributes.addFlashAttribute("message", "Đã xóa ví thành công!");
+    public String delete(@PathVariable Long id, Authentication auth, RedirectAttributes redirectAttributes) {
+        try {
+            walletService.delete(id, auth.getName());
+            redirectAttributes.addFlashAttribute("message", "Đã xóa ví thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Không thể xóa ví: " + e.getMessage());
+        }
         return "redirect:/user/wallets";
     }
 
@@ -166,20 +170,25 @@ public class WalletController {
                 String amountStr = allParams.get(key);
                 
                 if (amountStr != null && !amountStr.trim().isEmpty()) {
-                    double amount = Double.parseDouble(amountStr);
-                    if (amount > 0) {
-                        Wallet wallet = walletService.findById(walletId, username);
-                        if (wallet != null) {
-                            Transaction t = new Transaction();
-                            t.setAmount(amount);
-                            t.setType(TransactionType.INCOME);
-                            t.setDate(LocalDate.now());
-                            t.setWallet(wallet);
-                            t.setDescription(allParams.get("descriptions[" + walletId + "]"));
-                            
-                            transactionService.save(t, username);
-                            count++;
+                    try {
+                        java.math.BigDecimal amount = new java.math.BigDecimal(amountStr.trim());
+                        if (amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                            Wallet wallet = walletService.findById(walletId, username);
+                            if (wallet != null) {
+                                Transaction t = new Transaction();
+                                t.setAmount(amount);
+                                t.setType(TransactionType.INCOME);
+                                t.setDate(LocalDate.now());
+                                t.setWallet(wallet);
+                                t.setDescription(allParams.get("descriptions[" + walletId + "]"));
+                                
+                                transactionService.save(t, username);
+                                count++;
+                            }
                         }
+                    } catch (NumberFormatException e) {
+                        // LECTURER FEEDBACK #5: batchFund dùng Double.parseDouble không handle exception
+                        // Skip if not a valid number
                     }
                 }
             }
@@ -193,13 +202,13 @@ public class WalletController {
 
     @PostMapping("/fund")
     public String fund(@RequestParam Long walletId, 
-                       @RequestParam Double amount, 
+                       @RequestParam java.math.BigDecimal amount, 
                        @RequestParam String description, 
                        Authentication auth, 
                        RedirectAttributes redirectAttributes) {
         String username = auth.getName();
         Wallet wallet = walletService.findById(walletId, username);
-        if (wallet != null && amount != null && amount > 0) {
+        if (wallet != null && amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
             Transaction t = new Transaction();
             t.setAmount(amount);
             t.setType(TransactionType.INCOME);
@@ -218,7 +227,7 @@ public class WalletController {
     @PostMapping("/save-daily-limit")
     @ResponseBody
     public ResponseEntity<Void> saveDailyLimit(@RequestParam Long walletId, 
-                                              @RequestParam Double dailyLimit, 
+                                              @RequestParam java.math.BigDecimal dailyLimit, 
                                               Authentication auth) {
         budgetService.saveDailyLimit(walletId, dailyLimit, auth.getName());
         return ResponseEntity.ok().build();
@@ -226,17 +235,17 @@ public class WalletController {
 
     @GetMapping("/{id}/budgets")
     @ResponseBody
-    public ResponseEntity<Map<Long, Double>> getBudgets(@PathVariable Long id, 
+    public ResponseEntity<Map<Long, java.math.BigDecimal>> getBudgets(@PathVariable Long id, 
                                                       @RequestParam int month, 
                                                       @RequestParam int year, 
                                                       Authentication auth) {
-        Map<Long, Double> budgets = budgetService.getBudgetMapByMonth(auth.getName(), month, year, id);
+        Map<Long, java.math.BigDecimal> budgets = budgetService.getBudgetMapByMonth(auth.getName(), month, year, id);
         return ResponseEntity.ok(budgets);
     }
 
     @GetMapping("/{id}/effective-limit")
     @ResponseBody
-    public Double getEffectiveLimit(@PathVariable Long id, @RequestParam String date, Authentication auth) {
+    public java.math.BigDecimal getEffectiveLimit(@PathVariable Long id, @RequestParam String date, Authentication auth) {
         LocalDate targetDate = LocalDate.parse(date);
         return budgetService.getDailyLimitForWallet(auth.getName(), id, targetDate);
     }

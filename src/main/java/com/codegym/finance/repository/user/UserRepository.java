@@ -20,5 +20,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findTop5ByOrderByCreatedAtDesc();
 
     @org.springframework.data.jpa.repository.Query("SELECT SUM(u.balance) FROM User u")
-    Double sumAllBalances();
+    java.math.BigDecimal sumAllBalances();
 }

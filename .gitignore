@@ -43,3 +43,9 @@ bootRun_*.log
 ### OS Files ###
 .DS_Store
 Thumbs.db
+
+# Compiled class file
+*.class
+
+# Database configuration containing sensitive credentials
+src/main/resources/application.properties

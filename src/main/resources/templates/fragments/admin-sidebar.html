@@ -37,6 +37,30 @@
                 </form>
             </div>
         </nav>
+        <script th:inline="javascript">
+            // Inject CSRF meta tags dynamically into the head
+            (function () {
+                const token = [[${_csrf != null ? _csrf.token : ''}]];
+                const header = [[${_csrf != null ? _csrf.headerName : ''}]];
+                if (token && header) {
+                    let metaToken = document.querySelector('meta[name="_csrf"]');
+                    if (!metaToken) {
+                        metaToken = document.createElement('meta');
+                        metaToken.name = '_csrf';
+                        document.head.appendChild(metaToken);
+                    }
+                    metaToken.content = token;
+
+                    let metaHeader = document.querySelector('meta[name="_csrf_header"]');
+                    if (!metaHeader) {
+                        metaHeader = document.createElement('meta');
+                        metaHeader.name = '_csrf_header';
+                        document.head.appendChild(metaHeader);
+                    }
+                    metaHeader.content = header;
+                }
+            })();
+        </script>
     </aside>
 </body>
 </html>

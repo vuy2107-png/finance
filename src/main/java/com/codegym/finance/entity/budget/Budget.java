@@ -18,7 +18,7 @@ public class Budget {
     private Long id;
 
     @Column(nullable = false)
-    private Double amount; // Số tiền hạn mức
+    private java.math.BigDecimal amount; // Số tiền hạn mức
 
     @Column(nullable = false)
     private Integer month;

@@ -159,6 +159,29 @@
     <script th:inline="javascript">
         window.effectiveDate = [[${user != null && user.testDate != null ? user.testDate : T(java.time.LocalDate).now()}]];
         
+        // Inject CSRF meta tags dynamically into the head
+        (function () {
+            const token = [[${_csrf != null ? _csrf.token : ''}]];
+            const header = [[${_csrf != null ? _csrf.headerName : ''}]];
+            if (token && header) {
+                let metaToken = document.querySelector('meta[name="_csrf"]');
+                if (!metaToken) {
+                    metaToken = document.createElement('meta');
+                    metaToken.name = '_csrf';
+                    document.head.appendChild(metaToken);
+                }
+                metaToken.content = token;
+
+                let metaHeader = document.querySelector('meta[name="_csrf_header"]');
+                if (!metaHeader) {
+                    metaHeader = document.createElement('meta');
+                    metaHeader.name = '_csrf_header';
+                    document.head.appendChild(metaHeader);
+                }
+                metaHeader.content = header;
+            }
+        })();
+
         // Toast Auto-hide logic
         (function () {
             const toasts = document.querySelectorAll('.toast');

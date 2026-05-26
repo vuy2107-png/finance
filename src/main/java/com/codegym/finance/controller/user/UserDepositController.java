@@ -37,15 +37,15 @@ public class UserDepositController {
     }
 
     @PostMapping("/process")
-    public String processDeposit(@RequestParam Double amount, Authentication auth, RedirectAttributes ra) {
-        if (amount == null || amount <= 0) {
+    public String processDeposit(@RequestParam java.math.BigDecimal amount, Authentication auth, RedirectAttributes ra) {
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             ra.addFlashAttribute("error", "Số tiền nạp không hợp lệ!");
             return "redirect:/user/deposit";
         }
 
         User user = userService.findByUsername(auth.getName());
-        double currentBalance = (user.getBalance() != null) ? user.getBalance() : 0.0;
-        user.setBalance(currentBalance + amount);
+        java.math.BigDecimal currentBalance = (user.getBalance() != null) ? user.getBalance() : java.math.BigDecimal.ZERO;
+        user.setBalance(currentBalance.add(amount));
         userService.save(user);
 
         // Tạo bản ghi giao dịch nạp tiền
@@ -58,7 +58,7 @@ public class UserDepositController {
         
         transactionService.save(t, auth.getName());
 
-        ra.addFlashAttribute("message", "Nạp tiền thành công! Đã cộng " + String.format("%.0f", amount) + "đ vào tài khoản.");
+        ra.addFlashAttribute("message", "Nạp tiền thành công! Đã cộng " + amount.setScale(0, java.math.RoundingMode.HALF_UP).toString() + "đ vào tài khoản.");
         return "redirect:/user/shop"; // Sau khi nạp xong dẫn ra shop để tiêu tiền luôn
     }
 }

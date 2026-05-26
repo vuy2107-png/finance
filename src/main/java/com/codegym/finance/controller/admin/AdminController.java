@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.Map;
 import com.codegym.finance.entity.user.User;
 
-import com.codegym.finance.repository.transaction.TransactionRepository;
-import com.codegym.finance.repository.user.UserRepository;
 import com.codegym.finance.service.user.IUserService;
+import com.codegym.finance.service.admin.AdminStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,16 +24,10 @@ import java.time.format.DateTimeFormatter;
 public class AdminController {
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
     private IUserService userService;
 
     @Autowired
-    private com.codegym.finance.service.admin.AdminStatsService adminStatsService;
+    private AdminStatsService adminStatsService;
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
@@ -43,7 +36,7 @@ public class AdminController {
         
         model.addAttribute("growthData", adminStatsService.getUserGrowthData());
         model.addAttribute("segmentationData", adminStatsService.getUserSegmentationData());
-        model.addAttribute("recentUsers", userRepository.findTop5ByOrderByCreatedAtDesc());
+        model.addAttribute("recentUsers", userService.findRecentUsers());
         
         return "admin/dashboard";
     }

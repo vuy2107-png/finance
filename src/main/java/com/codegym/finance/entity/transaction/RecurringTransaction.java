@@ -29,7 +29,7 @@ public class RecurringTransaction {
 
     @NotNull(message = "Số tiền không được để trống")
     @Column(nullable = false)
-    private Double amount;
+    private java.math.BigDecimal amount;
 
     @NotNull(message = "Loại giao dịch không được để trống")
     @Enumerated(EnumType.STRING)
