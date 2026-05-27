@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 
+import com.codegym.finance.service.budget.BudgetAlertDTO;
+
 public interface ITransactionService {
 
     // 🔥 LẤY DANH SÁCH THEO USER
@@ -61,4 +63,9 @@ public interface ITransactionService {
     org.springframework.data.domain.Page<Transaction> filterTransactions(String username, java.time.LocalDate start, java.time.LocalDate end, Long walletId, Long categoryId, String keyword, org.springframework.data.domain.Pageable pageable);
     boolean hasCompletedMonthlyFunding(String username);
     List<Map<String, Object>> getDailySpendingReport(String username, int month, int year);
+
+    BudgetAlertDTO createTransaction(Transaction transaction, String categoryName, String username);
+    BudgetAlertDTO updateTransaction(Transaction transaction, String categoryName, String username);
+    int batchFund(Map<Long, java.math.BigDecimal> amounts, Map<Long, String> descriptions, String username);
+    void fund(Long walletId, java.math.BigDecimal amount, String description, String username);
 }

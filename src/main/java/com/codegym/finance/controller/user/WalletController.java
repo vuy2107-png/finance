@@ -117,34 +117,17 @@ public class WalletController {
 
     @PostMapping("/create")
     public String create(@ModelAttribute Wallet wallet, Authentication auth, RedirectAttributes redirectAttributes) {
-        User user = userService.findByUsername(auth.getName());
-        
-        // Kiểm tra giới hạn ví cho người dùng Free
-        if (user.getPremium() == null || !user.getPremium()) {
-            long walletCount = walletService.countByUsername(auth.getName());
-            if (walletCount >= 2) {
-                redirectAttributes.addFlashAttribute("error", "Bạn đã đạt giới hạn 2 ví cho tài khoản Miễn phí. Hãy nâng cấp Premium để tạo không giới hạn!");
+        try {
+            walletService.createWallet(wallet, auth.getName());
+            redirectAttributes.addFlashAttribute("message", "Đã tạo ví mới thành công!");
+            return "redirect:/user/dashboard";
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            if (e.getMessage().contains("Premium")) {
                 return "redirect:/user/premium";
             }
+            return "redirect:/user/wallets";
         }
-        
-        java.math.BigDecimal initialBalance = wallet.getBalance() != null ? wallet.getBalance() : java.math.BigDecimal.ZERO;
-        wallet.setBalance(java.math.BigDecimal.ZERO); // Reset để Transaction service cập nhật lại
-        wallet.setUser(user);
-        walletService.save(wallet);
-
-        if (initialBalance.compareTo(java.math.BigDecimal.ZERO) > 0) {
-            Transaction t = new Transaction();
-            t.setAmount(initialBalance);
-            t.setType(TransactionType.INCOME);
-            t.setDate(LocalDate.now());
-            t.setWallet(wallet);
-            t.setDescription("Khởi tạo số dư ban đầu");
-            transactionService.save(t, auth.getName());
-        }
-
-        redirectAttributes.addFlashAttribute("message", "Đã tạo ví mới thành công!");
-        return "redirect:/user/dashboard"; // Quay về dashboard để thấy kết quả
     }
 
     @PostMapping("/delete/{id}")
@@ -161,41 +144,33 @@ public class WalletController {
     @PostMapping("/batch-fund")
     public String batchFund(@RequestParam java.util.Map<String, String> allParams, Authentication auth, RedirectAttributes redirectAttributes) {
         String username = auth.getName();
-        int count = 0;
+        java.util.Map<Long, java.math.BigDecimal> amounts = new java.util.HashMap<>();
+        java.util.Map<Long, String> descriptions = new java.util.HashMap<>();
         
         for (String key : allParams.keySet()) {
             if (key.startsWith("amounts[")) {
                 String walletIdStr = key.substring(8, key.length() - 1);
-                Long walletId = Long.parseLong(walletIdStr);
-                String amountStr = allParams.get(key);
-                
-                if (amountStr != null && !amountStr.trim().isEmpty()) {
-                    try {
+                try {
+                    Long walletId = Long.parseLong(walletIdStr);
+                    String amountStr = allParams.get(key);
+                    if (amountStr != null && !amountStr.trim().isEmpty()) {
                         java.math.BigDecimal amount = new java.math.BigDecimal(amountStr.trim());
-                        if (amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-                            Wallet wallet = walletService.findById(walletId, username);
-                            if (wallet != null) {
-                                Transaction t = new Transaction();
-                                t.setAmount(amount);
-                                t.setType(TransactionType.INCOME);
-                                t.setDate(LocalDate.now());
-                                t.setWallet(wallet);
-                                t.setDescription(allParams.get("descriptions[" + walletId + "]"));
-                                
-                                transactionService.save(t, username);
-                                count++;
-                            }
-                        }
-                    } catch (NumberFormatException e) {
-                        // LECTURER FEEDBACK #5: batchFund dùng Double.parseDouble không handle exception
-                        // Skip if not a valid number
+                        amounts.put(walletId, amount);
+                        descriptions.put(walletId, allParams.get("descriptions[" + walletId + "]"));
                     }
+                } catch (NumberFormatException e) {
+                    // Skip if invalid number format
                 }
             }
         }
         
-        if (count > 0) {
-            redirectAttributes.addFlashAttribute("message", "Đã cấp vốn thành công cho " + count + " ví!");
+        try {
+            int count = transactionService.batchFund(amounts, descriptions, username);
+            if (count > 0) {
+                redirectAttributes.addFlashAttribute("message", "Đã cấp vốn thành công cho " + count + " ví!");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
         return "redirect:/user/dashboard";
     }
@@ -206,20 +181,13 @@ public class WalletController {
                        @RequestParam String description, 
                        Authentication auth, 
                        RedirectAttributes redirectAttributes) {
-        String username = auth.getName();
-        Wallet wallet = walletService.findById(walletId, username);
-        if (wallet != null && amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-            Transaction t = new Transaction();
-            t.setAmount(amount);
-            t.setType(TransactionType.INCOME);
-            t.setDate(LocalDate.now());
-            t.setWallet(wallet);
-            t.setDescription(description != null && !description.isEmpty() ? description : "Cấp vốn bổ sung");
-            
-            transactionService.save(t, username);
-            redirectAttributes.addFlashAttribute("message", "Đã cấp vốn thành công cho ví " + wallet.getName() + "!");
-        } else {
-            redirectAttributes.addFlashAttribute("error", "Số tiền cấp vốn không hợp lệ!");
+        try {
+            transactionService.fund(walletId, amount, description, auth.getName());
+            Wallet wallet = walletService.findById(walletId, auth.getName());
+            String walletName = wallet != null ? wallet.getName() : "";
+            redirectAttributes.addFlashAttribute("message", "Đã cấp vốn thành công cho ví " + walletName + "!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/user/wallets/" + walletId;
     }

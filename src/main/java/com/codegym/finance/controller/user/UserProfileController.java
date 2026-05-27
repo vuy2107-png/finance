@@ -27,21 +27,12 @@ public class UserProfileController {
     public String updateProfile(@ModelAttribute("user") User userUpdates,
                                 Authentication auth,
                                 RedirectAttributes redirectAttributes) {
-        User currentUser = userService.findByUsername(auth.getName());
-        
-        // Update only profile fields
-        currentUser.setFullName(userUpdates.getFullName());
-        currentUser.setEmail(userUpdates.getEmail());
-        currentUser.setPhoneNumber(userUpdates.getPhoneNumber());
-        currentUser.setAddress(userUpdates.getAddress());
-        currentUser.setGender(userUpdates.getGender());
-        currentUser.setDateOfBirth(userUpdates.getDateOfBirth());
-        currentUser.setTestDate(userUpdates.getTestDate());
-        // Avatar would normally be handled as a file upload, but for now we'll just keep it
-        
-        userService.save(currentUser);
-        
-        redirectAttributes.addFlashAttribute("message", "Cập nhật hồ sơ thành công!");
+        try {
+            userService.updateProfile(auth.getName(), userUpdates);
+            redirectAttributes.addFlashAttribute("message", "Cập nhật hồ sơ thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi: " + e.getMessage());
+        }
         return "redirect:/user/profile";
     }
 

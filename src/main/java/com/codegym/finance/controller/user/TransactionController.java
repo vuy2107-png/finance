@@ -134,43 +134,12 @@ public class TransactionController {
             return "user/transaction/create";
         }
         try {
-            // Kiểm tra khóa tháng (không được thêm tháng trước hoặc sau)
-            // Kiểm tra ngày tương lai (Sử dụng ngày giả lập nếu có)
-            LocalDate today = userService.getEffectiveDate(auth.getName());
-            if (transaction.getDate().isAfter(today)) {
-                throw new Exception("Không thể thêm giao dịch cho ngày trong tương lai! (Hôm nay là " + 
-                    today.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
-            }
-
-            if (categoryName != null && !categoryName.trim().isEmpty()) {
-                transaction.setCategory(categoryService.getOrCreateCategory(categoryName, transaction.getType(), auth.getName()));
-            }
-            transactionService.save(transaction, auth.getName());
-            
-            if (transaction.getCategory() != null) {
-                Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
-                BudgetAlertDTO alert = budgetService.checkBudgetAlert(
-                        auth.getName(), 
-                        transaction.getCategory().getId(), 
-                        transaction.getDate().getMonthValue(), 
-                        transaction.getDate().getYear(),
-                        walletId
-                );
-                
-                // Also check daily limit
-                BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
-                
-                if (dailyAlert.isAlert()) {
-                    redirectAttributes.addFlashAttribute("budgetAlert", dailyAlert);
-                    redirectAttributes.addFlashAttribute("message", dailyAlert.getMessage());
-                } else if (alert.isAlert()) {
+            BudgetAlertDTO alert = transactionService.createTransaction(transaction, categoryName, auth.getName());
+            if (alert != null) {
+                if (alert.isAlert()) {
                     redirectAttributes.addFlashAttribute("budgetAlert", alert);
-                    redirectAttributes.addFlashAttribute("message", alert.getMessage());
-                } else {
-                    redirectAttributes.addFlashAttribute("message", "Tuyệt vời! Bạn vẫn đang quản lý ngân sách rất tốt. ✅");
                 }
-            } else {
-                redirectAttributes.addFlashAttribute("message", "Đã thêm giao dịch thành công! ✅");
+                redirectAttributes.addFlashAttribute("message", alert.getMessage());
             }
         } catch (SpendingLimitException e) {
             if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
@@ -212,53 +181,13 @@ public class TransactionController {
             return "user/transaction/edit";
         }
 
-        // Fetch existing transaction to check date and lock status
-        Transaction existing = transactionService.findById(transaction.getId(), auth.getName());
-        if (existing == null) {
-            redirectAttributes.addFlashAttribute("error", "Giao dịch không tồn tại.");
-            return "redirect:/user/transactions";
-        }
-
-        // Kiểm tra ngày tương lai
-        LocalDate today = userService.getEffectiveDate(auth.getName());
-        if (transaction.getDate().isAfter(today)) {
-            redirectAttributes.addFlashAttribute("error", "Không thể sửa giao dịch thành ngày trong tương lai!");
-            return "redirect:/user/transactions";
-        }
-
         try {
-            // Xử lý danh mục "viết tay"
-            if (categoryName != null && !categoryName.trim().isEmpty()) {
-                transaction.setCategory(categoryService.getOrCreateCategory(categoryName, transaction.getType(), auth.getName()));
-            }
-            
-            transactionService.update(transaction, auth.getName());
-            
-            // Check budget for update
-            if (transaction.getCategory() != null) {
-                Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
-                BudgetAlertDTO alert = budgetService.checkBudgetAlert(
-                        auth.getName(), 
-                        transaction.getCategory().getId(), 
-                        transaction.getDate().getMonthValue(), 
-                        transaction.getDate().getYear(),
-                        walletId
-                );
-                
-                // Also check daily limit
-                BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(auth.getName(), walletId);
-                
-                if (dailyAlert.isAlert()) {
-                    redirectAttributes.addFlashAttribute("budgetAlert", dailyAlert);
-                    redirectAttributes.addFlashAttribute("message", "Cập nhật thành công. " + dailyAlert.getMessage());
-                } else if (alert.isAlert()) {
+            BudgetAlertDTO alert = transactionService.updateTransaction(transaction, categoryName, auth.getName());
+            if (alert != null) {
+                if (alert.isAlert()) {
                     redirectAttributes.addFlashAttribute("budgetAlert", alert);
-                    redirectAttributes.addFlashAttribute("message", "Cập nhật thành công. " + alert.getMessage());
-                } else {
-                    redirectAttributes.addFlashAttribute("message", "Đã cập nhật giao dịch thành công! Bạn vẫn đang quản lý ngân sách rất tốt. ✅");
                 }
-            } else {
-                redirectAttributes.addFlashAttribute("message", "Đã cập nhật giao dịch thành công! ✅");
+                redirectAttributes.addFlashAttribute("message", alert.getMessage());
             }
         } catch (SpendingLimitException e) {
             model.addAttribute("error", e.getMessage());
@@ -278,23 +207,11 @@ public class TransactionController {
 
     @PostMapping("/transactions/delete")
     public String delete(@RequestParam Long id, Authentication auth, RedirectAttributes ra) {
-        Transaction transaction = transactionService.findById(id, auth.getName());
-        if (transaction == null) {
-            ra.addFlashAttribute("error", "Giao dịch không tồn tại.");
-            return "redirect:/user/transactions";
-        }
-
-        // Kiểm tra khóa tháng
-        java.time.LocalDate today = java.time.LocalDate.now();
-        if (transaction.getDate().getMonthValue() != today.getMonthValue() || 
-            transaction.getDate().getYear() != today.getYear()) {
-            ra.addFlashAttribute("error", "Không thể xóa giao dịch từ các tháng trước.");
-            return "redirect:/user/transactions";
-        }
-
         try {
             transactionService.delete(id, auth.getName());
             ra.addFlashAttribute("message", "Đã xóa giao dịch thành công!");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("error", e.getMessage());
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
@@ -304,19 +221,8 @@ public class TransactionController {
     @PostMapping("/update-ajax")
     public String updateAjax(@ModelAttribute Transaction transaction, Authentication auth, 
                              RedirectAttributes ra, HttpServletRequest request, Model model) {
-        Transaction existing = transactionService.findById(transaction.getId(), auth.getName());
-        if (existing == null) {
-            return "redirect:/user/transactions/error-ajax";
-        }
-
-        // Kiểm tra ngày tương lai
-        LocalDate today = userService.getEffectiveDate(auth.getName());
-        if (transaction.getDate().isAfter(today)) {
-            return "redirect:/user/transactions/error-ajax";
-        }
-
         try {
-            transactionService.update(transaction, auth.getName());
+            transactionService.updateTransaction(transaction, null, auth.getName());
             return "redirect:/user/transactions";
         } catch (Exception e) {
             return "redirect:/user/transactions/error-ajax";

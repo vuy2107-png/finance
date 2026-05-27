@@ -14,4 +14,5 @@ public interface IIconService {
     List<UserIcon> findUserIconsByUsername(String username);
     boolean existsByUserUsernameAndIconId(String username, Long iconId);
     void saveUserIcon(UserIcon userIcon);
+    void buyIcon(Long iconId, String username);
 }

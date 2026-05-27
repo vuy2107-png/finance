@@ -16,7 +16,10 @@ import com.codegym.finance.service.user.IUserService;
 import com.codegym.finance.repository.budget.BudgetRepository;
 import com.codegym.finance.exception.SpendingLimitException;
 import com.codegym.finance.service.budget.IBudgetService;
+import com.codegym.finance.service.budget.BudgetAlertDTO;
+import com.codegym.finance.service.category.ICategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,7 @@ public class TransactionService implements ITransactionService {
     private UserRepository userRepository;
 
     @Autowired
+    @Lazy
     private IWalletService walletService;
 
     @Autowired
@@ -45,10 +49,14 @@ public class TransactionService implements ITransactionService {
     private WalletRepository walletRepository;
 
     @Autowired
+    @Lazy
     private IUserService userService;
 
     @Autowired
     private IBudgetService budgetService;
+
+    @Autowired
+    private ICategoryService categoryService;
 
     /**
      * Tìm danh sách tất cả các giao dịch của người dùng theo tên đăng nhập (Sắp xếp theo ngày giảm dần và ID giảm dần).
@@ -127,13 +135,21 @@ public class TransactionService implements ITransactionService {
         updateWalletBalances(old);
     }
 
-    /**
-     * Xóa một giao dịch theo ID, đồng thời hoàn tác (reverse) số dư ví tương ứng.
-     */
     @Override
     @Transactional
     public void delete(Long id, String username) {
         Transaction transaction = findById(id, username);
+        if (transaction == null) {
+            throw new RuntimeException("Giao dịch không tồn tại.");
+        }
+
+        // Kiểm tra khóa tháng
+        java.time.LocalDate today = java.time.LocalDate.now();
+        if (transaction.getDate().getMonthValue() != today.getMonthValue() || 
+            transaction.getDate().getYear() != today.getYear()) {
+            throw new RuntimeException("Không thể xóa giao dịch từ các tháng trước.");
+        }
+
         reverseWalletBalances(transaction);
         transactionRepository.delete(transaction);
     }
@@ -621,6 +637,135 @@ public class TransactionService implements ITransactionService {
             }
         }
         return day;
+    }
+
+    @Override
+    @Transactional
+    public BudgetAlertDTO createTransaction(Transaction transaction, String categoryName, String username) {
+        LocalDate today = userService.getEffectiveDate(username);
+        if (transaction.getDate().isAfter(today)) {
+            throw new RuntimeException("Không thể thêm giao dịch cho ngày trong tương lai! (Hôm nay là " + 
+                today.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ")");
+        }
+
+        if (categoryName != null && !categoryName.trim().isEmpty()) {
+            transaction.setCategory(categoryService.getOrCreateCategory(categoryName, transaction.getType(), username));
+        }
+        
+        save(transaction, username);
+
+        if (transaction.getCategory() != null) {
+            Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
+            BudgetAlertDTO alert = budgetService.checkBudgetAlert(
+                    username, 
+                    transaction.getCategory().getId(), 
+                    transaction.getDate().getMonthValue(), 
+                    transaction.getDate().getYear(),
+                    walletId
+            );
+            
+            BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(username, walletId);
+            
+            if (dailyAlert.isAlert()) {
+                return dailyAlert;
+            } else if (alert.isAlert()) {
+                return alert;
+            } else {
+                return new BudgetAlertDTO(false, "Tuyệt vời! Bạn vẫn đang quản lý ngân sách rất tốt. ✅", null, null, null);
+            }
+        } else {
+            return new BudgetAlertDTO(false, "Đã thêm giao dịch thành công! ✅", null, null, null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public BudgetAlertDTO updateTransaction(Transaction transaction, String categoryName, String username) {
+        Transaction existing = findById(transaction.getId(), username);
+        if (existing == null) {
+            throw new RuntimeException("Giao dịch không tồn tại.");
+        }
+
+        LocalDate today = userService.getEffectiveDate(username);
+        if (transaction.getDate().isAfter(today)) {
+            throw new RuntimeException("Không thể sửa giao dịch thành ngày trong tương lai!");
+        }
+
+        if (categoryName != null && !categoryName.trim().isEmpty()) {
+            transaction.setCategory(categoryService.getOrCreateCategory(categoryName, transaction.getType(), username));
+        }
+        
+        update(transaction, username);
+
+        if (transaction.getCategory() != null) {
+            Long walletId = (transaction.getWallet() != null) ? transaction.getWallet().getId() : null;
+            BudgetAlertDTO alert = budgetService.checkBudgetAlert(
+                    username, 
+                    transaction.getCategory().getId(), 
+                    transaction.getDate().getMonthValue(), 
+                    transaction.getDate().getYear(),
+                    walletId
+            );
+            
+            BudgetAlertDTO dailyAlert = budgetService.checkDailyLimitAlert(username, walletId);
+            
+            if (dailyAlert.isAlert()) {
+                dailyAlert.setMessage("Cập nhật thành công. " + dailyAlert.getMessage());
+                return dailyAlert;
+            } else if (alert.isAlert()) {
+                alert.setMessage("Cập nhật thành công. " + alert.getMessage());
+                return alert;
+            } else {
+                return new BudgetAlertDTO(false, "Đã cập nhật giao dịch thành công! Bạn vẫn đang quản lý ngân sách rất tốt. ✅", null, null, null);
+            }
+        } else {
+            return new BudgetAlertDTO(false, "Đã cập nhật giao dịch thành công! ✅", null, null, null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public int batchFund(Map<Long, java.math.BigDecimal> amounts, Map<Long, String> descriptions, String username) {
+        int count = 0;
+        for (Map.Entry<Long, java.math.BigDecimal> entry : amounts.entrySet()) {
+            Long walletId = entry.getKey();
+            java.math.BigDecimal amount = entry.getValue();
+            if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                Wallet wallet = walletService.findById(walletId, username);
+                if (wallet != null) {
+                    Transaction t = new Transaction();
+                    t.setAmount(amount);
+                    t.setType(TransactionType.INCOME);
+                    t.setDate(LocalDate.now());
+                    t.setWallet(wallet);
+                    t.setDescription(descriptions.get(walletId));
+                    
+                    save(t, username);
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    @Override
+    @Transactional
+    public void fund(Long walletId, java.math.BigDecimal amount, String description, String username) {
+        Wallet wallet = walletService.findById(walletId, username);
+        if (wallet == null) {
+            throw new RuntimeException("Không tìm thấy ví hoặc ví không thuộc về bạn");
+        }
+        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Số tiền cấp vốn không hợp lệ!");
+        }
+        Transaction t = new Transaction();
+        t.setAmount(amount);
+        t.setType(TransactionType.INCOME);
+        t.setDate(LocalDate.now());
+        t.setWallet(wallet);
+        t.setDescription(description != null && !description.isEmpty() ? description : "Cấp vốn bổ sung");
+        
+        save(t, username);
     }
 }
 

@@ -38,27 +38,13 @@ public class UserDepositController {
 
     @PostMapping("/process")
     public String processDeposit(@RequestParam java.math.BigDecimal amount, Authentication auth, RedirectAttributes ra) {
-        if (amount == null || amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            ra.addFlashAttribute("error", "Số tiền nạp không hợp lệ!");
+        try {
+            userService.deposit(auth.getName(), amount);
+            ra.addFlashAttribute("message", "Nạp tiền thành công! Đã cộng " + amount.setScale(0, java.math.RoundingMode.HALF_UP).toString() + "đ vào tài khoản.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("error", e.getMessage());
             return "redirect:/user/deposit";
         }
-
-        User user = userService.findByUsername(auth.getName());
-        java.math.BigDecimal currentBalance = (user.getBalance() != null) ? user.getBalance() : java.math.BigDecimal.ZERO;
-        user.setBalance(currentBalance.add(amount));
-        userService.save(user);
-
-        // Tạo bản ghi giao dịch nạp tiền
-        com.codegym.finance.entity.transaction.Transaction t = new com.codegym.finance.entity.transaction.Transaction();
-        t.setUser(user);
-        t.setAmount(amount);
-        t.setType(com.codegym.finance.entity.transaction.TransactionType.INCOME);
-        t.setDate(java.time.LocalDate.now());
-        t.setDescription("SYSTEM_DEPOSIT_INFLOW: Nạp tiền vào tài khoản");
-        
-        transactionService.save(t, auth.getName());
-
-        ra.addFlashAttribute("message", "Nạp tiền thành công! Đã cộng " + amount.setScale(0, java.math.RoundingMode.HALF_UP).toString() + "đ vào tài khoản.");
         return "redirect:/user/shop"; // Sau khi nạp xong dẫn ra shop để tiêu tiền luôn
     }
 }

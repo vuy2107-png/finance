@@ -11,4 +11,5 @@ public interface IWalletService {
     void updateBalance(Long walletId, java.math.BigDecimal amount, boolean isIncome);
     long countByUsername(String username);
     org.springframework.data.domain.Page<Wallet> searchWallets(String username, String keyword, org.springframework.data.domain.Pageable pageable);
+    Wallet createWallet(Wallet wallet, String username);
 }

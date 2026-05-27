@@ -71,14 +71,7 @@ public class AuthController {
         }
 
         try {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-            user.setRole(Role.USER);
-            user.setActive(true);
-            user.setPremium(false); // Mặc định là tài khoản thường
-            user.setExpiryDate(null);
-            user.setHasSeenTour(false);
-
-            userService.save(user);
+            userService.register(user);
 
             redirectAttributes.addFlashAttribute("message", "Đăng ký thành công! Hãy đăng nhập để bắt đầu.");
             return "redirect:/login";

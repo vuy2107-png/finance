@@ -1,10 +1,14 @@
 package com.codegym.finance.service.wallet;
 import com.codegym.finance.entity.transaction.Transaction;
-
+import com.codegym.finance.entity.transaction.TransactionType;
+import com.codegym.finance.entity.user.User;
 import com.codegym.finance.entity.wallet.Wallet;
 import com.codegym.finance.repository.wallet.WalletRepository;
 import com.codegym.finance.service.wallet.IWalletService;
+import com.codegym.finance.service.user.IUserService;
+import com.codegym.finance.service.transaction.ITransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +19,13 @@ public class WalletService implements IWalletService {
 
     @Autowired
     private WalletRepository walletRepository;
+
+    @Autowired
+    private IUserService userService;
+
+    @Autowired
+    @Lazy
+    private ITransactionService transactionService;
 
     @Override
     public List<Wallet> findByUsername(String username) {
@@ -63,8 +74,46 @@ public class WalletService implements IWalletService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<com.codegym.finance.entity.wallet.Wallet> searchWallets(String username, String keyword, org.springframework.data.domain.Pageable pageable) {
+    public org.springframework.data.domain.Page<Wallet> searchWallets(String username, String keyword, org.springframework.data.domain.Pageable pageable) {
         return walletRepository.searchWallets(username, keyword, pageable);
+    }
+
+    /**
+     * Tạo một ví mới cho người dùng. Thực hiện kiểm tra giới hạn ví đối với người dùng tài khoản thường (tối đa 2 ví).
+     * Đồng thời, khởi tạo số dư ban đầu cho ví bằng cách tạo một giao dịch INCOME.
+     */
+    @Override
+    @Transactional
+    public Wallet createWallet(Wallet wallet, String username) {
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            throw new RuntimeException("Không tìm thấy người dùng");
+        }
+
+        // Kiểm tra giới hạn ví cho người dùng Free
+        if (user.getPremium() == null || !user.getPremium()) {
+            long walletCount = countByUsername(username);
+            if (walletCount >= 2) {
+                throw new RuntimeException("Bạn đã đạt giới hạn 2 ví cho tài khoản Miễn phí. Hãy nâng cấp Premium để tạo không giới hạn!");
+            }
+        }
+
+        java.math.BigDecimal initialBalance = wallet.getBalance() != null ? wallet.getBalance() : java.math.BigDecimal.ZERO;
+        wallet.setBalance(java.math.BigDecimal.ZERO); // Reset để Transaction service cập nhật lại
+        wallet.setUser(user);
+        save(wallet);
+
+        if (initialBalance.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            Transaction t = new Transaction();
+            t.setAmount(initialBalance);
+            t.setType(TransactionType.INCOME);
+            t.setDate(java.time.LocalDate.now());
+            t.setWallet(wallet);
+            t.setDescription("Khởi tạo số dư ban đầu");
+            transactionService.save(t, username);
+        }
+        
+        return wallet;
     }
 }
 

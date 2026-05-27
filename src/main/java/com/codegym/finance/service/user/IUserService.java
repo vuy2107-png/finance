@@ -17,4 +17,8 @@ public interface IUserService {
     java.time.LocalDate getEffectiveDate(String username);
     void updateTestDate(String username, java.time.LocalDate testDate);
     List<User> findRecentUsers();
+    void deposit(String username, java.math.BigDecimal amount);
+    void buyPremium(String username, String plan);
+    void updateProfile(String username, User userUpdates);
+    void register(User user);
 }
